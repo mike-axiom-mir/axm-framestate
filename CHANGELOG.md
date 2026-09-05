@@ -28,3 +28,19 @@ Surviving documentation records that the earlier uncommitted body had reached 22
 ## v0.2 GitHub checkpoint
 
 Expanded the initial procedural renderer into a genre-open video construction body with imported media/audio, text/captions, compositing, narration, shot compilation/storyboards, render queues, primitive 3D and OBJ meshes.
+
+## v0.5 director + recipe checkpoint
+
+FrameState moved one floor above low-level movie assembly:
+
+- native `axm.framestate.creative-brief/v0.1` compiler;
+- deterministic style palettes and beat-to-shot construction;
+- one-command `make` now accepts creative briefs as well as shot plans/projects;
+- detached reusable `axm.framestate.shot-recipe/v0.1` candidates;
+- typed recipe parameters and deterministic placeholder materialization;
+- fixture replay through the real shot-plan/project validator;
+- four-root + daily-recovery adoption path for shot recipes;
+- installed recipes become optional director vocabulary without gaining canon, merge, permission, or arbitrary-code authority;
+- new capability map entries for creative-brief compilation and shot-recipe organs.
+
+Free-form natural-language directing remains an explicit optional translator boundary rather than being falsely claimed as native deterministic machinery.
