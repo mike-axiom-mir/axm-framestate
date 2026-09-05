@@ -32,6 +32,7 @@ def _validate_program(program: Any, label: str) -> list[Any]:
         if isinstance(token, str) and (token in PROGRAM_OPS or token in PROGRAM_VARS):
             continue
         raise EffectError(f"{label} unsupported token: {token!r}")
+    # Static stack-depth proof.
     depth = 0
     for token in program:
         if isinstance(token, int) or token in PROGRAM_VARS:
@@ -109,6 +110,7 @@ class EffectOrgan:
                 return r * keep // 1000, g * keep // 1000, b * keep // 1000
             return r, g, b
         if self.kind == "channel-shift":
+            # Pixel-local variant: deterministic channel rotation rather than spatial sampling.
             mode = self.params.get("mode", "rgb-to-gbr")
             if mode == "rgb-to-gbr":
                 return g, b, r
@@ -212,6 +214,7 @@ def test_effect_manifest(manifest: dict[str, Any]) -> dict[str, Any]:
         ok = actual == fixture["expected"]
         passed = passed and ok
         observations.append({"fixture": fixture, "actual": actual, "passed": ok})
+    # Repeat the fixture pass exactly to prove candidate behavior is stable for known fixtures.
     replay = [list(organ.apply(*f["input"], *f["xy"])) for f in manifest["fixtures"]]
     replay_digest = digest(replay)
     return {
