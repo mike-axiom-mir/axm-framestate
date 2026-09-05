@@ -53,7 +53,19 @@ PYTHONPATH=src python -m axm_framestate make \
   --profile fast
 ```
 
-`make` accepts either a canonical FrameState project or a structured shot-plan. A shot-plan is compiled into one canonical project before rendering.
+`make` accepts a canonical FrameState project, a structured shot-plan, or a v0.5 creative brief.
+
+## Director layer (v0.5)
+
+FrameState can now start one floor above a shot plan. A compact creative brief chooses a style, media and ordered beats; the deterministic director materializes those beats into shots, compiles a canonical project, and the existing renderer takes over.
+
+```bash
+PYTHONPATH=src python -m axm_framestate make examples/creative_brief.json renders/director-proof
+```
+
+Reusable **shot-recipe organs** can also be replay-tested and adopted behind the same four-root + daily-recovery boundary used for live effect growth. They are data-only construction templates, not arbitrary executable code. See `DIRECTOR.md`.
+
+Free-form natural-language directing remains an explicit translator boundary. FrameState does not pretend that a deterministic creative brief compiler is a general language model.
 
 ## Hard verification
 
@@ -65,7 +77,7 @@ PYTHONPATH=src python -m axm_framestate gaps \
   examples/advanced_requirements.json
 ```
 
-Current checkpoint: **14/14 unit tests pass**, the compact advanced mixed-media repeat proof passes, and the named advanced requirements probe returns READY.
+Current checkpoint: **17/17 unit tests pass**, the compact advanced mixed-media repeat proof passes, the creative-brief repeat proof passes, and the named advanced requirements probe returns READY.
 
 ## Inspect rather than trust
 
@@ -80,19 +92,21 @@ PYTHONPATH=src python -m axm_framestate storyboard \
 
 The reviewer and analyzer provide bounded evidence. They do not silently edit the project and do not pretend to score beauty, story or emotional truth.
 
-## Grow one verified effect organ
+## Grow verified creation vocabulary
+
+Effects remain one supported bounded growth class. v0.5 adds shot recipes as another:
 
 ```bash
-PYTHONPATH=src python -m axm_framestate spawn-effect \
-  examples/posterize.effect.json candidates
+PYTHONPATH=src python -m axm_framestate spawn-recipe \
+  examples/lower_third.recipe.json candidates
 
-PYTHONPATH=src python -m axm_framestate adopt-effect \
-  candidates/axm.effect.posterize-1.0.0 \
-  --reason "Add verified reusable posterization" \
+PYTHONPATH=src python -m axm_framestate adopt-recipe \
+  candidates/axm.recipe.lower-third-1.0.0 \
+  --reason "Reuse a verified lower-third construction" \
   --root-fit examples/root_fit.json
 ```
 
-A candidate remains detached until replay tests pass. Supported live adoption requires visible positive fit to all four roots and establishes the daily recovery snapshot first.
+A candidate remains detached until replay tests pass. Supported live adoption requires visible positive fit to all four roots and establishes the daily recovery snapshot first. Adoption gives reuse, not canon/merge/permission/arbitrary-code authority.
 
 ## Truth boundaries
 
@@ -103,7 +117,7 @@ FrameState separates evidence planes deliberately:
 - imported media bytes are digest-bound; FFmpeg/Pillow/font/speech boundaries remain named and version/evidence receipted;
 - internally mixed PCM/WAV is exact for the current runtime;
 - MP4 encoding remains an external FFmpeg boundary, with no false universal bit-identical codec claim;
-- current self-growth is bounded to tested effect organs, not arbitrary self-rewriting;
-- natural-language directing is optional frontier capability, not required for the deterministic body.
+- current self-growth is bounded to tested effect and shot-recipe organs, not arbitrary self-rewriting;
+- creative briefs are structured deterministic direction, not a claim of free-form language understanding or artistic judgment.
 
-See `FOUNDATION.md`, `CHANGELOG.md`, `DONOR_NOTES.md` and `VERIFICATION.md` for the current evidence boundary.
+See `FOUNDATION.md`, `CHANGELOG.md`, `DONOR_NOTES.md`, `DIRECTOR.md` and `VERIFICATION.md` for the current evidence boundary.
