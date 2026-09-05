@@ -61,3 +61,11 @@ Adoption gives the recipe **reuse**, not authority. It cannot merge itself, beco
 A creative brief proves that a high-level structured direction can compile deterministically into the current movie grammar. A recipe fixture proves deterministic template materialization plus current project validity. Neither proves taste, story quality, emotional truth, or universal suitability.
 
 Free-form natural language may be translated into a creative brief by a human or an explicitly named AI/model boundary. That translator is not required by FrameState and is not silently treated as native deterministic truth.
+
+## Rehearsal before final output
+
+v0.6 can place the Director's compiled candidate through the Rehearsal / Iteration Fabric before final output. This makes direction multi-pass without pretending the machine has a universal taste score.
+
+The Director still chooses/compiles construction vocabulary. Rehearsal then measures the candidate's mechanical consequences, proposes bounded state deltas, re-renders candidates, compares evidence, and keeps only improvements allowed by the explicit policy.
+
+See `REHEARSAL.md`.

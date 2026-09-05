@@ -44,3 +44,23 @@ FrameState moved one floor above low-level movie assembly:
 - new capability map entries for creative-brief compilation and shot-recipe organs.
 
 Free-form natural-language directing remains an explicit optional translator boundary rather than being falsely claimed as native deterministic machinery.
+
+## v0.6 rehearsal / iteration checkpoint
+
+FrameState gained a deterministic rehearsal fabric between direction and final output:
+
+- candidate film simulation passes before final MP4 assembly;
+- explicit rehearsal policy with bounded auto-eligible delta classes;
+- audio mixer now preserves unclamped accumulation truth and receipts measured pre-clip peak + clipped sample count;
+- audio-headroom rehearsal uses both declared overlap and measured pre-clip evidence;
+- caption reading-load calculation and timing extension without text rewrite;
+- fade-budget repair for impossible fade/lifetime combinations;
+- actual raster text-fit calculation plus deterministic multiline wrapping without changing words;
+- frame motion and shot-boundary delta observations remain evidence, not automatic taste judgments;
+- each proposed delta is replayed and accepted only if its target metric improves with no new review blocks or total mechanical-violation increase;
+- clean projects may stop without any rewrite;
+- `rehearse` command and `make --rehearse` quality path;
+- path-independent render receipt digests;
+- deterministic rehearsal receipts and optional final repeat verification.
+
+A compact creative brief proof reached final output through three accepted passes: audio headroom, caption readability, and text fit, then stopped with `NO_JUSTIFIED_AUTO_DELTA`.

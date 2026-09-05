@@ -25,8 +25,9 @@ These roots apply above humans, AI instances and machine subsystems equally. The
 8. captions, subtitles and audio composition;
 9. frame/audio/media/render receipts;
 10. mechanical review, frame analysis and explicit gap exposure;
-11. detached bounded growth for effect organs and data-only shot-recipe organs;
-12. daily whole-body recovery.
+11. deterministic rehearsal / iteration with evidence-backed bounded deltas before final output;
+12. detached bounded growth for effect organs and data-only shot-recipe organs;
+13. daily whole-body recovery.
 
 These layers may be rearranged or replaced when use produces a better structure that still fits the roots.
 

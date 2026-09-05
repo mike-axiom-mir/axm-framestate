@@ -41,13 +41,15 @@ CAPABILITIES={
 'mp4-assembly':('external-boundary','FFmpeg profile encode, version/output digest'),
 'repeat-verification':('tested','second full render compares project/media/frame/audio truth'),
 'mechanical-video-review':('executable','bounded framing/audio/camera checks'),
-'daily-recovery':('executable','whole-body snapshot before supported effect adoption'),
+'rehearsal-iteration':('tested','candidate render -> mechanical evidence -> bounded delta -> replay -> compare -> accept/hold loop'),
+'deterministic-quality-loop':('tested','quality path can iterate evidence-backed construction before final output without hidden artistic scoring'),
+'daily-recovery':('executable','whole-body snapshot before supported live adoption'),
 'natural-language-directing':('gap','free-form language still requires an explicit translator; creative briefs and shot plans are native'),
 'arbitrary-self-modification':('gap','growth remains bounded; no arbitrary self-write authority'),
 }
 
 def capability_summary()->dict[str,Any]:
-    return {'schema':'axm.framestate.capability-map/v0.5','capabilities':{k:{'status':v[0],'evidence':v[1]} for k,v in CAPABILITIES.items()}}
+    return {'schema':'axm.framestate.capability-map/v0.6','capabilities':{k:{'status':v[0],'evidence':v[1]} for k,v in CAPABILITIES.items()}}
 
 def analyze_requirements(required:list[str])->dict[str,Any]:
     rows=[];ready=True

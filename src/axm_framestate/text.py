@@ -13,27 +13,32 @@ FONT={
 BOX=['11111','10001','10101','10101','10101','10001','11111']
 
 def bitmap_text(text:str,scale:int=1,color=(255,255,255),bg=None,padding:int=0)->tuple[int,int,bytes,dict[str,Any]]:
-    text=text.upper(); glyphs=[FONT.get(c,BOX) for c in text]; w=(6*len(glyphs)-1)*scale+padding*2; h=7*scale+padding*2
+    lines=text.upper().split('\n') or ['']; glyph_lines=[[FONT.get(c,BOX) for c in line] for line in lines]
+    line_widths=[((6*len(glyphs)-1)*scale if glyphs else 0) for glyphs in glyph_lines]
+    w=max(1,max(line_widths,default=0)+padding*2); line_h=7*scale; gap=max(1,scale); h=max(1,len(lines)*line_h+max(0,len(lines)-1)*gap+padding*2)
     pix=[tuple(bg) if bg is not None else (0,0,0,0) for _ in range(w*h)]
-    for gi,g in enumerate(glyphs):
-        for y,row in enumerate(g):
-            for x,bit in enumerate(row):
-                if bit=='1':
-                    for yy in range(scale):
-                        for xx in range(scale):
-                            px=padding+(gi*6+x)*scale+xx; py=padding+y*scale+yy; pix[py*w+px]=(*color,255)
+    for li,glyphs in enumerate(glyph_lines):
+        yoff=padding+li*(line_h+gap)
+        for gi,g in enumerate(glyphs):
+            for y,row in enumerate(g):
+                for x,bit in enumerate(row):
+                    if bit=='1':
+                        for yy in range(scale):
+                            for xx in range(scale):
+                                px=padding+(gi*6+x)*scale+xx; py=yoff+y*scale+yy; pix[py*w+px]=(*color,255)
     body=bytearray()
     for p in pix:
         if len(p)==4: body.extend(p)
         else: body.extend((*p,255))
-    return w,h,bytes(body),{'boundary':'native-5x7-bitmap','glyph_count':len(glyphs)}
+    return w,h,bytes(body),{'boundary':'native-5x7-bitmap','glyph_count':sum(len(g) for g in glyph_lines),'line_count':len(lines)}
 
 def shaped_text(text:str,font_path:Path,font_size:int,color=(255,255,255),bg=None,padding:int=0)->tuple[int,int,bytes,dict[str,Any]]:
     font=ImageFont.truetype(str(font_path),font_size)
     dummy=Image.new('RGBA',(8,8),(0,0,0,0)); d=ImageDraw.Draw(dummy)
-    bbox=d.textbbox((0,0),text,font=font,direction=None)
+    spacing=max(1,font_size//5)
+    bbox=d.multiline_textbbox((0,0),text,font=font,spacing=spacing,align='left')
     w=max(1,bbox[2]-bbox[0]+padding*2); h=max(1,bbox[3]-bbox[1]+padding*2)
     im=Image.new('RGBA',(w,h),tuple(bg)+(255,) if bg else (0,0,0,0)); dr=ImageDraw.Draw(im)
-    dr.text((padding-bbox[0],padding-bbox[1]),text,font=font,fill=tuple(color)+(255,))
-    ev={'boundary':'Pillow/FreeType text rasterization','font_digest':file_digest(font_path),'font_size':font_size,'raqm':bool(features.check('raqm'))}
+    dr.multiline_text((padding-bbox[0],padding-bbox[1]),text,font=font,fill=tuple(color)+(255,),spacing=spacing,align='left')
+    ev={'boundary':'Pillow/FreeType text rasterization','font_digest':file_digest(font_path),'font_size':font_size,'raqm':bool(features.check('raqm')),'line_count':len(text.split('\n'))}
     return w,h,im.tobytes(),ev

@@ -35,12 +35,14 @@ def _speech(text:str,voice:str,rate:int)->tuple[bytes,dict[str,Any]]:
     return raw,ev
 
 def _add(samples:list[list[int]],i:int,value:int,gain:int,pan:int,channels:int):
+    # Accumulate unclamped mix truth. Clamping happens once at the final PCM boundary
+    # so the manifest can expose actual pre-clip headroom instead of hiding it.
     value=value*gain//1000
     if channels==1:
-        samples[0][i]=max(-32768,min(32767,samples[0][i]+value));return
+        samples[0][i]+=value;return
     # linear pan: -1000 full left, +1000 full right
     lg=1000-max(0,pan); rg=1000+min(0,pan)
-    samples[0][i]=max(-32768,min(32767,samples[0][i]+value*lg//1000));samples[1][i]=max(-32768,min(32767,samples[1][i]+value*rg//1000))
+    samples[0][i]+=value*lg//1000;samples[1][i]+=value*rg//1000
 
 def render_audio(project:dict[str,Any],path:Path,machine_root:Path|None=None,output_dir:Path|None=None)->dict[str,Any]:
     fps=project['canvas']['fps']; total=project['duration_frames']*SAMPLE_RATE//fps
@@ -67,9 +69,12 @@ def render_audio(project:dict[str,Any],path:Path,machine_root:Path|None=None,out
             if j>=len(vals): break
             frame=event['start_frame']+local*fps//SAMPLE_RATE;gain=max(0,min(4000,sample(event.get('gain_milli',1000),frame,event['start_frame'],event['end_frame'])));pan=max(-1000,min(1000,sample(event.get('pan_milli',0),frame,event['start_frame'],event['end_frame'])));_add(samples,i,vals[j],gain,pan,channels)
         evidence.append(ev)
+    preclip_peak=max((abs(v) for channel in samples for v in channel),default=0)
+    clipped_values=sum(1 for channel in samples for v in channel if v < -32768 or v > 32767)
     inter=bytearray()
     for i in range(total):
-        for c in range(channels): inter.extend(struct.pack('<h',samples[c][i]))
+        for c in range(channels):
+            v=max(-32768,min(32767,samples[c][i]));inter.extend(struct.pack('<h',v))
     path=Path(path);path.parent.mkdir(parents=True,exist_ok=True)
     with wave.open(str(path),'wb') as wf: wf.setnchannels(channels);wf.setsampwidth(2);wf.setframerate(SAMPLE_RATE);wf.writeframes(bytes(inter))
-    result={'schema':'axm.framestate.audio-manifest/v0.4','sample_rate':SAMPLE_RATE,'channels':channels,'samples_per_channel':total,'pcm_digest':'sha256:'+hashlib.sha256(inter).hexdigest(),'wav_digest':file_digest(path),'events_digest':digest(project.get('audio',[])),'source_evidence':evidence};result['manifest_digest']=digest(result);return result
+    result={'schema':'axm.framestate.audio-manifest/v0.6','sample_rate':SAMPLE_RATE,'channels':channels,'samples_per_channel':total,'pcm_digest':'sha256:'+hashlib.sha256(inter).hexdigest(),'wav_digest':file_digest(path),'events_digest':digest(project.get('audio',[])),'preclip_peak_abs':preclip_peak,'clipped_sample_values':clipped_values,'source_evidence':evidence};result['manifest_digest']=digest(result);return result

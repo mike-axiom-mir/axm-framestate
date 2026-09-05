@@ -11,6 +11,8 @@ from .director import compile_plan_file,compile_brief_file
 from .shots import derive_shots,storyboard
 from .queue import render_queue
 from .analysis import analyze_render
+from .rehearsal import rehearse_project
+from .rehearsal_metrics import normalize_policy
 
 def _root(): return Path.cwd().resolve()
 def _print(v): print(json.dumps(v,indent=2,sort_keys=True,ensure_ascii=False))
@@ -34,7 +36,8 @@ def main(argv:list[str]|None=None)->int:
     x=sub.add_parser('storyboard');x.add_argument('project');x.add_argument('output')
     x=sub.add_parser('render-queue');x.add_argument('queue')
     x=sub.add_parser('analyze');x.add_argument('render_dir');x.add_argument('--threshold-milli',type=int,default=300)
-    x=sub.add_parser('make');x.add_argument('input');x.add_argument('output');x.add_argument('--profile',choices=['fast','h264','quality'],default='h264',help='accepts canonical project, shot-plan, or creative-brief JSON and renders final video')
+    x=sub.add_parser('rehearse');x.add_argument('input');x.add_argument('output');x.add_argument('--policy');x.add_argument('--profile',choices=['fast','h264','quality'],default='h264');x.add_argument('--verify-repeat',action='store_true')
+    x=sub.add_parser('make');x.add_argument('input');x.add_argument('output');x.add_argument('--profile',choices=['fast','h264','quality'],default='h264',help='accepts canonical project, shot-plan or creative-brief JSON and renders final video');x.add_argument('--rehearse',action='store_true');x.add_argument('--policy');x.add_argument('--verify-repeat',action='store_true')
     a=p.parse_args(argv);root=_root()
     if a.command=='inspect':_print(load_project(Path(a.project)))
     elif a.command=='render':_print(render_with_receipt(load_project(Path(a.project)),Path(a.output),root,assemble=not a.no_assemble,profile=a.profile))
@@ -57,13 +60,16 @@ def main(argv:list[str]|None=None)->int:
     elif a.command=='storyboard':_print(storyboard(load_project(Path(a.project)),Path(a.output),root))
     elif a.command=='render-queue':_print(render_queue(Path(a.queue),root))
     elif a.command=='analyze':_print(analyze_render(Path(a.render_dir),a.threshold_milli))
-    elif a.command=='make':
-        raw=json.loads(Path(a.input).read_text(encoding='utf-8'))
-        schema=str(raw.get('schema',''))
+    elif a.command in {'rehearse','make'}:
+        raw=json.loads(Path(a.input).read_text(encoding='utf-8'));schema=str(raw.get('schema',''))
         if schema.startswith('axm.framestate.shot-plan/'):
             temp=Path(a.output)/'compiled-project.json';compile_plan_file(Path(a.input),temp);project=load_project(temp)
         elif schema=='axm.framestate.creative-brief/v0.1':
             temp=Path(a.output)/'compiled-project.json';compile_brief_file(Path(a.input),temp,root);project=load_project(temp)
         else: project=load_project(Path(a.input))
-        _print(render_with_receipt(project,Path(a.output),root,assemble=True,profile=a.profile))
+        do_rehearse=(a.command=='rehearse') or bool(getattr(a,'rehearse',False))
+        if do_rehearse:
+            policy=json.loads(Path(a.policy).read_text(encoding='utf-8')) if getattr(a,'policy',None) else None
+            _print(rehearse_project(project,Path(a.output),root,policy=policy,assemble_final=True,profile=a.profile,verify_final=bool(getattr(a,'verify_repeat',False))))
+        else:_print(render_with_receipt(project,Path(a.output),root,assemble=True,profile=a.profile))
     return 0
