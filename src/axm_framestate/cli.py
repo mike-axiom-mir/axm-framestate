@@ -3,11 +3,11 @@ import argparse,json
 from pathlib import Path
 from .canonical import load_project,canonical_json
 from .capabilities import analyze_requirements,capability_summary
-from .forge import adopt_effect,spawn_effect
+from .forge import adopt_effect,spawn_effect,adopt_recipe,spawn_recipe
 from .receipts import render_with_receipt,verify_repeat
 from .snapshot import create_daily_snapshot
 from .review import review_project
-from .director import compile_plan_file
+from .director import compile_plan_file,compile_brief_file
 from .shots import derive_shots,storyboard
 from .queue import render_queue
 from .analysis import analyze_render
@@ -27,11 +27,14 @@ def main(argv:list[str]|None=None)->int:
     x=sub.add_parser('spawn-effect');x.add_argument('candidate');x.add_argument('output')
     x=sub.add_parser('adopt-effect');x.add_argument('candidate_dir');x.add_argument('--reason',required=True);x.add_argument('--root-fit',required=True)
     x=sub.add_parser('compile-plan');x.add_argument('plan');x.add_argument('output_project')
+    x=sub.add_parser('compile-brief');x.add_argument('brief');x.add_argument('output_project')
+    x=sub.add_parser('spawn-recipe');x.add_argument('candidate');x.add_argument('output')
+    x=sub.add_parser('adopt-recipe');x.add_argument('candidate_dir');x.add_argument('--reason',required=True);x.add_argument('--root-fit',required=True)
     x=sub.add_parser('shots');x.add_argument('project')
     x=sub.add_parser('storyboard');x.add_argument('project');x.add_argument('output')
     x=sub.add_parser('render-queue');x.add_argument('queue')
     x=sub.add_parser('analyze');x.add_argument('render_dir');x.add_argument('--threshold-milli',type=int,default=300)
-    x=sub.add_parser('make');x.add_argument('input');x.add_argument('output');x.add_argument('--profile',choices=['fast','h264','quality'],default='h264',help='accepts canonical project or shot-plan JSON and renders final video')
+    x=sub.add_parser('make');x.add_argument('input');x.add_argument('output');x.add_argument('--profile',choices=['fast','h264','quality'],default='h264',help='accepts canonical project, shot-plan, or creative-brief JSON and renders final video')
     a=p.parse_args(argv);root=_root()
     if a.command=='inspect':_print(load_project(Path(a.project)))
     elif a.command=='render':_print(render_with_receipt(load_project(Path(a.project)),Path(a.output),root,assemble=not a.no_assemble,profile=a.profile))
@@ -46,14 +49,21 @@ def main(argv:list[str]|None=None)->int:
     elif a.command=='adopt-effect':
         rf=json.loads(Path(a.root_fit).read_text());r=adopt_effect(root,Path(a.candidate_dir),a.reason,rf);_print(r);return 0 if r.get('adopted') else 3
     elif a.command=='compile-plan':_print(compile_plan_file(Path(a.plan),Path(a.output_project)))
+    elif a.command=='compile-brief':_print(compile_brief_file(Path(a.brief),Path(a.output_project),root))
+    elif a.command=='spawn-recipe':_print(spawn_recipe(Path(a.candidate),Path(a.output)))
+    elif a.command=='adopt-recipe':
+        rf=json.loads(Path(a.root_fit).read_text());r=adopt_recipe(root,Path(a.candidate_dir),a.reason,rf);_print(r);return 0 if r.get('adopted') else 3
     elif a.command=='shots':_print(derive_shots(load_project(Path(a.project))))
     elif a.command=='storyboard':_print(storyboard(load_project(Path(a.project)),Path(a.output),root))
     elif a.command=='render-queue':_print(render_queue(Path(a.queue),root))
     elif a.command=='analyze':_print(analyze_render(Path(a.render_dir),a.threshold_milli))
     elif a.command=='make':
         raw=json.loads(Path(a.input).read_text(encoding='utf-8'))
-        if str(raw.get('schema','')).startswith('axm.framestate.shot-plan/'):
+        schema=str(raw.get('schema',''))
+        if schema.startswith('axm.framestate.shot-plan/'):
             temp=Path(a.output)/'compiled-project.json';compile_plan_file(Path(a.input),temp);project=load_project(temp)
+        elif schema=='axm.framestate.creative-brief/v0.1':
+            temp=Path(a.output)/'compiled-project.json';compile_brief_file(Path(a.input),temp,root);project=load_project(temp)
         else: project=load_project(Path(a.input))
         _print(render_with_receipt(project,Path(a.output),root,assemble=True,profile=a.profile))
     return 0
