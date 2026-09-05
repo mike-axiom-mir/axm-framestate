@@ -1,0 +1,18 @@
+{
+  "schema":"axm.framestate.creative-brief/v0.1",
+  "id":"director-rehearsal-compact",
+  "title":"FrameState Rehearsal Loop",
+  "canvas":{"width":160,"height":90,"fps":12},
+  "duration_frames":72,
+  "style":"cinematic",
+  "format":"rehearsal-proof",
+  "media":[],
+  "beats":[
+    {"kind":"title","text":"REHEARSE BEFORE FINAL","weight":1},
+    {"kind":"message","text":"CALCULATION ON CALCULATION","weight":1,"caption":"EVIDENCE CHANGES THE NEXT CALCULATION WITHOUT CHANGING THE MESSAGE"},
+    {"kind":"closing","text":"STOP WHEN EVIDENCE STOPS","weight":1}
+  ],
+  "bed_tone":{"frequency_hz":82,"gain_milli":2200},
+  "effects":[],
+  "metadata":{"purpose":"compact brief -> rehearsal -> final proof"}
+}

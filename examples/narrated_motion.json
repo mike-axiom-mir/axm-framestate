@@ -1,0 +1,8 @@
+{
+ "schema":"axm.framestate.project/v0.2","id":"narrated-motion","canvas":{"width":128,"height":72,"fps":12},"duration_frames":60,"background":[8,10,18],
+ "camera":{"x":{"from":0,"to":0},"y":{"from":0,"to":0},"zoom_milli":{"from":1000,"to":1000}},
+ "layers":[{"id":"card","kind":"rect","z":1,"start_frame":0,"end_frame":60,"x":{"from":20,"to":108,"easing":"smoothstep"},"y":{"from":36,"to":36},"w":{"from":30,"to":50},"h":{"from":30,"to":50},"color":[80,170,255],"fade_in_frames":4,"fade_out_frames":4},{"id":"title","kind":"text","z":4,"start_frame":0,"end_frame":60,"text":"NARRATION","scale":1,"x":{"from":64,"to":64},"y":{"from":8,"to":8}}],
+ "captions":[{"id":"voice-caption","start_frame":2,"end_frame":52,"text":"FRAMESTATE CAN SPEAK THROUGH AN EXPLICIT TOOL BOUNDARY","scale":1,"position":"bottom"}],
+ "audio":[{"id":"narrator","kind":"speech","start_frame":2,"end_frame":58,"text":"Frame State can now build narration into a deterministic timeline while keeping the voice synthesizer as an explicit external boundary.","voice":"en","rate_wpm":165,"gain_milli":800}],
+ "effects":[],"markers":[{"frame":0,"label":"NARRATED","kind":"scene"}],"metadata":{}
+}

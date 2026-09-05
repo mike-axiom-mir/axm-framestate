@@ -1,0 +1,3 @@
+{"required":[
+ "canonical-project-state","video-compositor","image-sprite-import","video-clip-import","text-rendering","captions-subtitles","external-audio-import","audio-mixing","speech-synthesis","multi-keyframe-animation","camera-animation","effect-organs","shot-plan-compiler","storyboard-generator","render-queue","3d-scene-rendering","mesh-import","mp4-assembly","repeat-verification"
+]}

@@ -1,0 +1,44 @@
+from __future__ import annotations
+from pathlib import Path
+from typing import Any
+from PIL import Image, ImageDraw, ImageFont, features
+from .canonical import file_digest
+
+# 5x7 uppercase bitmap fallback. Unknown glyphs become boxed marks rather than silence.
+FONT={
+'A':['01110','10001','10001','11111','10001','10001','10001'],'B':['11110','10001','10001','11110','10001','10001','11110'],'C':['01111','10000','10000','10000','10000','10000','01111'],'D':['11110','10001','10001','10001','10001','10001','11110'],'E':['11111','10000','10000','11110','10000','10000','11111'],'F':['11111','10000','10000','11110','10000','10000','10000'],'G':['01111','10000','10000','10111','10001','10001','01110'],'H':['10001','10001','10001','11111','10001','10001','10001'],'I':['11111','00100','00100','00100','00100','00100','11111'],'J':['00111','00010','00010','00010','10010','10010','01100'],'K':['10001','10010','10100','11000','10100','10010','10001'],'L':['10000','10000','10000','10000','10000','10000','11111'],'M':['10001','11011','10101','10101','10001','10001','10001'],'N':['10001','11001','10101','10011','10001','10001','10001'],'O':['01110','10001','10001','10001','10001','10001','01110'],'P':['11110','10001','10001','11110','10000','10000','10000'],'Q':['01110','10001','10001','10001','10101','10010','01101'],'R':['11110','10001','10001','11110','10100','10010','10001'],'S':['01111','10000','10000','01110','00001','00001','11110'],'T':['11111','00100','00100','00100','00100','00100','00100'],'U':['10001','10001','10001','10001','10001','10001','01110'],'V':['10001','10001','10001','10001','10001','01010','00100'],'W':['10001','10001','10001','10101','10101','10101','01010'],'X':['10001','10001','01010','00100','01010','10001','10001'],'Y':['10001','10001','01010','00100','00100','00100','00100'],'Z':['11111','00001','00010','00100','01000','10000','11111'],
+'0':['01110','10001','10011','10101','11001','10001','01110'],'1':['00100','01100','00100','00100','00100','00100','01110'],'2':['01110','10001','00001','00010','00100','01000','11111'],'3':['11110','00001','00001','01110','00001','00001','11110'],'4':['00010','00110','01010','10010','11111','00010','00010'],'5':['11111','10000','10000','11110','00001','00001','11110'],'6':['01110','10000','10000','11110','10001','10001','01110'],'7':['11111','00001','00010','00100','01000','01000','01000'],'8':['01110','10001','10001','01110','10001','10001','01110'],'9':['01110','10001','10001','01111','00001','00001','01110'],
+' ':['00000']*7,'.':['00000','00000','00000','00000','00000','00110','00110'],':':['00000','00110','00110','00000','00110','00110','00000'],'-':['00000','00000','00000','11111','00000','00000','00000'],'!':['00100','00100','00100','00100','00100','00000','00100'],'?':['01110','10001','00001','00010','00100','00000','00100'],'/':['00001','00010','00100','01000','10000','00000','00000'],
+}
+BOX=['11111','10001','10101','10101','10101','10001','11111']
+
+def bitmap_text(text:str,scale:int=1,color=(255,255,255),bg=None,padding:int=0)->tuple[int,int,bytes,dict[str,Any]]:
+    lines=text.upper().split('\n') or ['']; glyph_lines=[[FONT.get(c,BOX) for c in line] for line in lines]
+    line_widths=[((6*len(glyphs)-1)*scale if glyphs else 0) for glyphs in glyph_lines]
+    w=max(1,max(line_widths,default=0)+padding*2); line_h=7*scale; gap=max(1,scale); h=max(1,len(lines)*line_h+max(0,len(lines)-1)*gap+padding*2)
+    pix=[tuple(bg) if bg is not None else (0,0,0,0) for _ in range(w*h)]
+    for li,glyphs in enumerate(glyph_lines):
+        yoff=padding+li*(line_h+gap)
+        for gi,g in enumerate(glyphs):
+            for y,row in enumerate(g):
+                for x,bit in enumerate(row):
+                    if bit=='1':
+                        for yy in range(scale):
+                            for xx in range(scale):
+                                px=padding+(gi*6+x)*scale+xx; py=yoff+y*scale+yy; pix[py*w+px]=(*color,255)
+    body=bytearray()
+    for p in pix:
+        if len(p)==4: body.extend(p)
+        else: body.extend((*p,255))
+    return w,h,bytes(body),{'boundary':'native-5x7-bitmap','glyph_count':sum(len(g) for g in glyph_lines),'line_count':len(lines)}
+
+def shaped_text(text:str,font_path:Path,font_size:int,color=(255,255,255),bg=None,padding:int=0)->tuple[int,int,bytes,dict[str,Any]]:
+    font=ImageFont.truetype(str(font_path),font_size)
+    dummy=Image.new('RGBA',(8,8),(0,0,0,0)); d=ImageDraw.Draw(dummy)
+    spacing=max(1,font_size//5)
+    bbox=d.multiline_textbbox((0,0),text,font=font,spacing=spacing,align='left')
+    w=max(1,bbox[2]-bbox[0]+padding*2); h=max(1,bbox[3]-bbox[1]+padding*2)
+    im=Image.new('RGBA',(w,h),tuple(bg)+(255,) if bg else (0,0,0,0)); dr=ImageDraw.Draw(im)
+    dr.multiline_text((padding-bbox[0],padding-bbox[1]),text,font=font,fill=tuple(color)+(255,),spacing=spacing,align='left')
+    ev={'boundary':'Pillow/FreeType text rasterization','font_digest':file_digest(font_path),'font_size':font_size,'raqm':bool(features.check('raqm')),'line_count':len(text.split('\n'))}
+    return w,h,im.tobytes(),ev
