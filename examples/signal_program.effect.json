@@ -1,0 +1,25 @@
+{
+  "schema": "axm.framestate.effect-organ/v0.1",
+  "id": "axm.effect.signal-program",
+  "version": "1.0.0",
+  "kind": "pixel-program",
+  "params": {
+    "channels": {
+      "r": ["r", "b", "+", 2, "/"],
+      "g": ["g", 2, "*", "clamp255"],
+      "b": ["b", 2, "*", "clamp255"]
+    }
+  },
+  "fixtures": [
+    {"input": [10, 100, 200], "xy": [0, 0], "expected": [105, 200, 255]},
+    {"input": [50, 20, 30], "xy": [2, 3], "expected": [40, 40, 60]}
+  ],
+  "root_fit": {
+    "truth": {"fit": true, "basis": "Every token is validated and fixture output is replay-tested without eval."},
+    "agency": {"fit": true, "basis": "The organ changes output only when a project explicitly references its exact ref."},
+    "continuity": {"fit": true, "basis": "Adoption is additive and occurs only after establishing the daily recovery boundary."},
+    "wisdom-before-speed": {"fit": true, "basis": "The bounded program is validated for stack correctness and tested before adoption."}
+  },
+  "provenance": {"origin": "FrameState v0.1 pixel-program demonstrator"},
+  "limitations": ["Pixel-local integer stack language only."]
+}

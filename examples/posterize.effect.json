@@ -1,0 +1,19 @@
+{
+  "schema": "axm.framestate.effect-organ/v0.1",
+  "id": "axm.effect.posterize",
+  "version": "1.0.0",
+  "kind": "posterize",
+  "params": {"levels": 4},
+  "fixtures": [
+    {"input": [10, 100, 240], "xy": [0, 0], "expected": [0, 85, 255]},
+    {"input": [130, 170, 200], "xy": [2, 3], "expected": [170, 170, 170]}
+  ],
+  "root_fit": {
+    "truth": {"fit": true, "basis": "The effect transformation is explicit, fixture-tested and receipt-bound."},
+    "agency": {"fit": true, "basis": "The effect is optional and only runs when a project explicitly references it."},
+    "continuity": {"fit": true, "basis": "Adoption is additive and preserves a daily recovery snapshot first."},
+    "wisdom-before-speed": {"fit": true, "basis": "Detached tests and replay are required before live adoption."}
+  },
+  "provenance": {"origin": "FrameState v0.1 standalone demonstrator"},
+  "limitations": ["Pixel-local color quantization only; no temporal or neighborhood sampling."]
+}
