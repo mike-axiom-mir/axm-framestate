@@ -1,0 +1,4 @@
+{"jobs":[
+  {"id":"first-light","project":"examples/first_light.json","output":"renders/queue-first","assemble":false},
+  {"id":"mixed","project":"examples/mixed_media.json","output":"renders/queue-mixed","assemble":false}
+]}

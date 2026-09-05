@@ -1,46 +1,43 @@
-# AXM FrameState Foundation v0.1
+# FrameState foundation
 
-FrameState is a standalone deterministic video-creation and growth machine.
+FrameState is a persistent, inspectable video-creation body. Its current internal architecture is **working scaffolding, not canon**.
 
-## Permanent roots
+## The only permanent roots
 
-Only four rules are treated as permanent authority above the current machine design:
+Every supported live self-change must preserve:
 
-1. Truth
-2. Agency
-3. Continuity
-4. Wisdom Before Speed
+- **Truth** — claims stay attached to evidence; unknowns and external boundaries stay visible.
+- **Agency** — creation and machine growth do not silently seize authority from the human, machine or supplied source.
+- **Continuity** — useful state, lineage and recovery remain preservable across change.
+- **Wisdom Before Speed** — faster growth never overrides evidence, recoverability or the other roots.
 
-Everything below those roots is replaceable when real use, failure, or better evidence justifies a better representation.
+These roots apply above humans, AI instances and machine subsystems equally. They are not a benchmark, reward score or claim that any participant already satisfies them perfectly.
 
-## Current body, not canon
+## Current body
 
-The v0.1 body uses these working layers:
+The machine presently separates:
 
-`canonical project state -> temporal sampling -> scene/layer composition -> effects -> frames/audio -> verification receipts -> optional external encoding`
+1. canonical project truth;
+2. time/keyframe sampling;
+3. shot/scene compilation;
+4. media conforming;
+5. 2D/3D composition and effect organs;
+6. captions and audio composition;
+7. render/state receipts;
+8. mechanical review and gap exposure;
+9. detached bounded growth;
+10. daily whole-body recovery.
 
-This is scaffolding, not a declaration that video must always be represented this way.
-
-## Growth path
-
-A currently supported bounded self-growth path exists for effect organs:
-
-`proposal -> normalize -> detached fixture test -> replay -> four-root declaration -> explicit adoption decision -> daily recovery snapshot -> exact install -> live reuse`
-
-The candidate cannot install itself merely by existing. The continuing machine performs a distinct adoption transition.
+Those layers may be rearranged or replaced if use produces a better structure that still fits the roots.
 
 ## Determinism boundary
 
-FrameState deliberately separates evidence planes:
+FrameState aims to make the **project state, internal sampling, generated frame bytes and internally mixed audio observable and replayable**. External codecs, media decoders and speech engines are not declared to become native deterministic machinery merely because FrameState calls them.
 
-- canonical project JSON: normalized and digest-bound;
-- timeline and frame state: deterministic integer sampling;
-- frame pixels: exact PPM bytes and per-frame digests;
-- audio: exact PCM/WAV bytes receipted for the current runtime;
-- MP4 container: optional FFmpeg external boundary with version recorded, no universal bit-identical codec claim.
+Instead, external input bytes, tool/version identity and the resulting conformed bytes are receipted. This lets exact current-run truth remain inspectable without making false cross-machine promises.
 
-A playable MP4 is useful output. It is not allowed to blur the stronger underlying frame-state truth.
+## Growth model
 
-## Standalone rule
+Known capability should remain reusable. Missing capability should become a named gap rather than a silent quality downgrade.
 
-Other AXM repositories may donate ideas and evidence. FrameState has no runtime import, clone, path link, or required dependency on them. Useful patterns are reimplemented locally.
+The current live self-growth transition is deliberately narrow: verified effect organs may be adopted after detached replay testing, four-root fit and recovery-snapshot establishment. Future growth mechanisms may broaden this, but arbitrary code mutation is not implied by the existence of one bounded evolution path.

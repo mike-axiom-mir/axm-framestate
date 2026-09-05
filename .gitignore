@@ -5,3 +5,7 @@ renders/
 candidates/
 snapshots/
 effect-organs/
+examples/media/*.ppm
+examples/media/*.wav
+examples/media/*.mp4
+examples/media/clipframes/

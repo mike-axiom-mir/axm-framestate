@@ -1,13 +1,12 @@
-# Donor knowledge notes
+# Donor knowledge, not runtime dependency
 
-FrameState v0.1 was implemented as new standalone source. No AXM runtime source is imported or required.
+FrameState was built as fresh standalone source. No other AXM repository is imported, cloned or required at runtime.
 
-Useful donor patterns observed before implementation included:
+Useful donor patterns inspected while designing the current body included:
 
-- Universal Creation: inspectable atoms/components/organs/capabilities; detached candidates; explicit truth boundaries; reusable gap closure; daily whole-machine recovery; four-root self-change fit.
-- AXM visual/temporal research: temporal creation grammar, scene direction, render/inspect/gap/generalize/replay loop.
-- AXM master vocabulary: animation curves/tracks/clips, timeline, video/audio tracks, transitions, shots, cinematic scenes, captions, render queue, frames, camera animation, audio graph concepts.
-- Grammar Glass: open discovery without automatic authority; receipts are observations rather than manufactured quality votes.
-- State research: treat canonical state and explicit state transitions as useful machine truth surfaces while avoiding claims that one current representation is final.
+- Universal Creation: inspectable atom/component/organ/capability layering, explicit transparency boundaries, detached tested creation units, daily recovery and bounded self-evolution;
+- AXM master creation registry: frame/timecode/keyframe/timeline/video/audio/shot/cinematic-scene/caption/subtitle/media/render-queue/camera-animation vocabulary plus organ-level concepts such as animation engine, compositor, encoder/decoder, media conformer, shot manager, storyboard generator and caption/subtitle organ;
+- prior temporal creation work: reference -> grammar -> build -> render -> inspect -> gap -> generalize -> replay;
+- broader AXM state work: canonical state as the truth surface and specialist/check machinery as views over that state rather than independent authority.
 
-These are donor ideas and evidence, not imported canon. FrameState's current representation may be replaced beneath the four permanent roots.
+These were treated as evidence and vocabulary, not canon. The only permanent authority layer carried into FrameState is the four roots: Truth, Agency, Continuity and Wisdom Before Speed.

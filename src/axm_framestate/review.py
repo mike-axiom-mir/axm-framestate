@@ -53,7 +53,8 @@ def review_project(project: dict[str, Any], machine_root) -> dict[str, Any]:
             findings.append({"severity": "warn", "code": "DECLARED_AUDIO_GAIN_OVERLAP", "subject": "audio", "evidence": {"frame": peak_frame, "summed_gain_milli": peak_declared_gain}, "note": "This is a simple declared-gain warning, not measured loudness or proof of clipping."})
 
     camera = project["camera"]
-    zoom_values = [camera["zoom_milli"]["from"], camera["zoom_milli"]["to"]]
+    zt = camera["zoom_milli"]
+    zoom_values = [k["value"] for k in zt["keyframes"]] if "keyframes" in zt else [zt["from"], zt["to"]]
     if max(zoom_values) > 3000 or min(zoom_values) < 250:
         findings.append({"severity": "note", "code": "EXTREME_CAMERA_ZOOM", "subject": "camera", "evidence": {"zoom_milli": zoom_values}})
 

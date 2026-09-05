@@ -10,6 +10,9 @@ from .forge import adopt_effect, spawn_effect
 from .receipts import render_with_receipt, verify_repeat
 from .snapshot import create_daily_snapshot
 from .review import review_project
+from .queue import run_queue
+from .shots import derive_shots, build_storyboard
+from .director import compile_plan_file
 
 
 def _root() -> Path:
@@ -44,6 +47,20 @@ def main(argv: list[str] | None = None) -> int:
 
     sub.add_parser("capabilities")
 
+    p = sub.add_parser("render-queue")
+    p.add_argument("queue")
+
+    p = sub.add_parser("shots")
+    p.add_argument("project")
+
+    p = sub.add_parser("storyboard")
+    p.add_argument("project")
+    p.add_argument("output")
+
+    p = sub.add_parser("compile-plan")
+    p.add_argument("plan")
+    p.add_argument("output")
+
     p = sub.add_parser("gaps")
     p.add_argument("requirements", help="JSON file with {\"required\": [capability ids]}")
 
@@ -77,6 +94,14 @@ def main(argv: list[str] | None = None) -> int:
         _print(review_project(project, root))
     elif args.command == "capabilities":
         _print(capability_summary())
+    elif args.command == "render-queue":
+        _print(run_queue(Path(args.queue), root))
+    elif args.command == "shots":
+        _print({"shots": derive_shots(load_project(Path(args.project)))})
+    elif args.command == "storyboard":
+        _print(build_storyboard(load_project(Path(args.project)), Path(args.output), root))
+    elif args.command == "compile-plan":
+        _print(compile_plan_file(Path(args.plan), Path(args.output)))
     elif args.command == "gaps":
         required = json.loads(Path(args.requirements).read_text(encoding="utf-8"))["required"]
         result = analyze_requirements(required)

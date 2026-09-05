@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from .audio import render_audio
+from .captions import write_webvtt
 from .canonical import canonical_json, digest, file_digest
 from .render import render_project
 
@@ -24,7 +25,8 @@ def render_with_receipt(project: dict[str, Any], output_dir: Path, machine_root:
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
     frame_manifest = render_project(project, output_dir, machine_root)
-    audio_manifest = render_audio(project, output_dir / "audio.wav")
+    audio_manifest = render_audio(project, output_dir / "audio.wav", machine_root)
+    caption_manifest = write_webvtt(project, output_dir / "captions.vtt")
     ffmpeg_version = _ffmpeg_version()
     video = None
     assembly = {
@@ -51,18 +53,21 @@ def render_with_receipt(project: dict[str, Any], output_dir: Path, machine_root:
             video = {"path": str(video_path), "digest": file_digest(video_path)}
             assembly["succeeded"] = True
     receipt = {
-        "schema": "axm.framestate.render-receipt/v0.1",
+        "schema": "axm.framestate.render-receipt/v0.2",
         "project_id": project["id"],
         "project_digest": digest(project),
         "frame_manifest_digest": frame_manifest["manifest_digest"],
         "audio_manifest": audio_manifest,
+        "caption_manifest": caption_manifest,
         "video": video,
         "assembly": assembly,
         "environment": {"python": platform.python_version(), "platform": platform.platform()},
         "truth_boundary": {
             "canonical_project": "normalized and digest-bound",
             "frame_state": "deterministic integer timeline plus exact PPM bytes receipted",
-            "audio": "exact WAV bytes receipted for the current runtime environment",
+            "audio": "exact mixed WAV bytes receipted; imported audio decode is an explicit FFmpeg boundary",
+            "media": "image/video inputs are digest-bound and conformed to exact PPM frames through an explicit FFmpeg boundary",
+            "captions": "caption cues render through the bundled bitmap font and export exact WebVTT bytes",
             "container_video": "external FFmpeg encoding boundary; no cross-machine bit-identical MP4 claim",
         },
     }
@@ -83,7 +88,7 @@ def verify_repeat(project: dict[str, Any], base_dir: Path, machine_root: Path) -
         "audio_wav_equal": first["audio_manifest"]["wav_digest"] == second["audio_manifest"]["wav_digest"],
     }
     result = {
-        "schema": "axm.framestate.repeat-verification/v0.1",
+        "schema": "axm.framestate.repeat-verification/v0.2",
         "passed": all(checks.values()),
         "checks": checks,
         "project_digest": first["project_digest"],
