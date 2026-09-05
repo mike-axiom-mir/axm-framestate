@@ -1,153 +1,209 @@
 from __future__ import annotations
-
-import hashlib
+import hashlib, json, random
 from pathlib import Path
 from typing import Any
-
-from .canonical import canonical_json, digest, file_digest
-from .effects import EffectOrgan, load_effect_library
-from .media import prepare_media, scale_nearest
-from .text import raster, measure
+from .canonical import canonical_json,digest,file_digest
+from .effects import EffectOrgan,load_effect_library
 from .timeline import sample
-from .three_d import cube_geometry, draw_cube, mesh_geometry, draw_mesh
+from .media import MediaCache, read_ppm
+from .text import bitmap_text, shaped_text
+from .three_d import CORDIC_SCALE, cube_mesh, project_vertex, rotate_xyz, sincos_mdeg
 
+class RenderError(RuntimeError): pass
 
-class RenderError(RuntimeError):
-    pass
+def clamp(v:int)->int: return 0 if v<0 else 255 if v>255 else v
 
+def _mode(dst:tuple[int,int,int],src:tuple[int,int,int],mode:str)->tuple[int,int,int]:
+    if mode=='add': return tuple(clamp(dst[i]+src[i]) for i in range(3))
+    if mode=='multiply': return tuple(dst[i]*src[i]//255 for i in range(3))
+    if mode=='screen': return tuple(255-((255-dst[i])*(255-src[i])//255) for i in range(3))
+    return src
 
-def _clamp(v: int) -> int:
-    return 0 if v < 0 else 255 if v > 255 else v
+def blend(dst:tuple[int,int,int],src:tuple[int,int,int],alpha:int,mode:str='normal')->tuple[int,int,int]:
+    a=max(0,min(1000,int(alpha))); s=_mode(dst,src,mode); inv=1000-a
+    return tuple(clamp((dst[i]*inv+s[i]*a)//1000) for i in range(3))
 
+def _camera(value:int,offset:int,zoom:int,center:int)->int: return center+(value-offset-center)*zoom//1000
 
-def _blend_mode(dst: tuple[int,int,int], src: tuple[int,int,int] | list[int], alpha_milli:int, mode:str="normal") -> tuple[int,int,int]:
-    a=max(0,min(1000,alpha_milli)); inv=1000-a
-    if mode=="add": mixed=tuple(_clamp(dst[i]+src[i]) for i in range(3))
-    elif mode=="multiply": mixed=tuple((dst[i]*src[i])//255 for i in range(3))
-    elif mode=="screen": mixed=tuple(255-((255-dst[i])*(255-src[i])//255) for i in range(3))
-    else: mixed=tuple(int(src[i]) for i in range(3))
-    return tuple(_clamp((dst[i]*inv+mixed[i]*a)//1000) for i in range(3))
+def _fade(layer:dict[str,Any],frame:int,alpha:int)->int:
+    s,e=layer['start_frame'],layer['end_frame']; fi=layer.get('fade_in_frames',0); fo=layer.get('fade_out_frames',0)
+    if fi and frame<s+fi: alpha=alpha*max(0,frame-s)*1000//max(1,fi)//1000
+    if fo and frame>=e-fo: alpha=alpha*max(0,e-1-frame)*1000//max(1,fo)//1000
+    return max(0,min(1000,alpha))
 
+def _draw_rect(pix,w,h,cx,cy,rw,rh,color,alpha,mode):
+    x0=cx-rw//2; y0=cy-rh//2
+    for y in range(max(0,y0),min(h,y0+rh)):
+        base=y*w
+        for x in range(max(0,x0),min(w,x0+rw)):
+            i=base+x; pix[i]=blend(pix[i],tuple(color),alpha,mode)
 
-def _camera_project(value:int,camera_offset:int,zoom_milli:int,center:int)->int:
-    return center+((value-camera_offset-center)*zoom_milli//1000)
+def _draw_circle(pix,w,h,cx,cy,r,color,alpha,mode):
+    rr=r*r
+    for y in range(max(0,cy-r),min(h,cy+r+1)):
+        dy=y-cy; base=y*w
+        for x in range(max(0,cx-r),min(w,cx+r+1)):
+            dx=x-cx
+            if dx*dx+dy*dy<=rr:
+                i=base+x; pix[i]=blend(pix[i],tuple(color),alpha,mode)
 
+def _rgba_from_rgb(sw:int,sh:int,body:bytes)->bytes:
+    out=bytearray(sw*sh*4)
+    j=0
+    for i in range(sw*sh): out[j:j+4]=body[i*3:i*3+3]+b'\xff'; j+=4
+    return bytes(out)
 
-def _fade_alpha(layer:dict[str,Any],frame:int,alpha:int)->int:
-    start,end=layer["start_frame"],layer["end_frame"]
-    fi=layer.get("fade_in_frames",0); fo=layer.get("fade_out_frames",0)
-    mul=1000
-    if fi and frame<start+fi: mul=min(mul,max(0,(frame-start)*1000//max(1,fi)))
-    if fo and frame>=end-fo: mul=min(mul,max(0,(end-frame-1)*1000//max(1,fo)))
-    return alpha*mul//1000
+def _composite_rgba(pix,w,h,rgba:bytes,sw:int,sh:int,cx:int,cy:int,dw:int,dh:int,angle:int,alpha:int,mode:str,wipe:int=1000,chroma=None,tolerance:int=0,mask:tuple[int,int,bytes]|None=None):
+    if dw<=0 or dh<=0: return
+    s,c=sincos_mdeg(angle); halfw=dw//2; halfh=dh//2
+    # conservative rotated bounding box
+    bound=max(dw,dh)+2; x0=max(0,cx-bound//2); x1=min(w,cx+bound//2+1); y0=max(0,cy-bound//2); y1=min(h,cy+bound//2+1)
+    for y in range(y0,y1):
+        for x in range(x0,x1):
+            dx=x-cx; dy=y-cy
+            # inverse rotate
+            rx=(dx*c+dy*s)//CORDIC_SCALE; ry=(-dx*s+dy*c)//CORDIC_SCALE
+            if rx<-halfw or rx>=dw-halfw or ry<-halfh or ry>=dh-halfh: continue
+            if wipe<1000 and (rx+halfw)*1000//max(1,dw)>=wipe: continue
+            u=(rx+halfw)*sw//max(1,dw); v=(ry+halfh)*sh//max(1,dh)
+            if not (0<=u<sw and 0<=v<sh): continue
+            si=(v*sw+u)*4; sr,sg,sb,sa=rgba[si:si+4]
+            if chroma is not None and max(abs(sr-chroma[0]),abs(sg-chroma[1]),abs(sb-chroma[2]))<=tolerance: continue
+            ma=1000
+            if mask is not None:
+                mw,mh,mb=mask; mu=u*mw//sw; mv=v*mh//sh; mi=(mv*mw+mu)*3; ma=sum(mb[mi:mi+3])*1000//(255*3)
+            a=alpha*sa//255*ma//1000
+            di=y*w+x; pix[di]=blend(pix[di],(sr,sg,sb),a,mode)
 
+def _text_rgba(layer:dict[str,Any],cache:MediaCache):
+    bg=layer.get('background_color')
+    if layer.get('font_media_id'):
+        return shaped_text(layer.get('text',''),cache.font_path(layer['font_media_id']),layer.get('font_size',16),tuple(layer.get('color',[255,255,255])),tuple(bg) if bg else None,layer.get('padding',0))
+    return bitmap_text(layer.get('text',''),layer.get('scale',1),tuple(layer.get('color',[255,255,255])),tuple(bg) if bg else None,layer.get('padding',0))
 
-def _draw_bitmap(pixels:list[tuple[int,int,int]],width:int,height:int,bitmap:list[tuple[int,int,int]|None],bw:int,bh:int,x0:int,y0:int,alpha:int,mode:str="normal",tint:list[int]|None=None)->None:
-    for y in range(bh):
-        py=y0+y
-        if py<0 or py>=height: continue
-        for x in range(bw):
-            px=x0+x
-            if px<0 or px>=width: continue
-            src=bitmap[y*bw+x]
-            if src is None: continue
-            if tint is not None: src=tuple(src[i]*tint[i]//255 for i in range(3))
-            idx=py*width+px
-            pixels[idx]=_blend_mode(pixels[idx],src,alpha,mode)
+def _source_index(layer:dict[str,Any],frame:int,count:int)->int:
+    if count<=1: return 0
+    if layer.get('freeze_frame') is not None: return max(0,min(count-1,int(layer['freeze_frame'])))
+    local=frame-layer['start_frame']; speed=sample(layer.get('playback_milli',1000),frame,layer['start_frame'],layer['end_frame'])
+    idx=layer.get('source_start_frame',0)+(local*speed//1000)
+    if layer.get('loop'): return idx%count
+    return max(0,min(count-1,idx))
 
+def _draw_particles(pix,w,h,layer,frame,cx,cy,alpha,mode):
+    count=layer['count']; seed=layer['seed']; age=max(0,frame-layer['start_frame']); color=layer['color']; size=layer['size']
+    for i in range(count):
+        # stable per-particle pseudo-random values
+        hsh=hashlib.sha256(f'{seed}:{i}'.encode()).digest(); rx=int.from_bytes(hsh[:4],'big'); ry=int.from_bytes(hsh[4:8],'big')
+        px=cx+(rx%(layer['spread_x']*2+1)-layer['spread_x']); py=cy+(ry%(layer['spread_y']*2+1)-layer['spread_y'])-age*layer['speed']
+        _draw_rect(pix,w,h,px,py,size,size,color,alpha,mode)
 
-def _draw_text(pixels:list[tuple[int,int,int]],width:int,height:int,text:str,scale:int,color:list[int],bg:list[int],padding:int,x:int,y:int,align:str,alpha:int)->dict[str,Any]:
-    tw,th,bm=raster(text,scale,color); bw=tw+2*padding; bh=th+2*padding
-    if align=="center": x0=x-bw//2
-    elif align=="right": x0=x-bw
-    else: x0=x
-    y0=y-bh//2
-    for py in range(max(0,y0),min(height,y0+bh)):
-        row=py*width
-        for px in range(max(0,x0),min(width,x0+bw)):
-            idx=row+px; pixels[idx]=_blend_mode(pixels[idx],bg,alpha,"normal")
-    _draw_bitmap(pixels,width,height,bm,tw,th,x0+padding,y0+padding,alpha)
-    return {"x":x0,"y":y0,"w":bw,"h":bh}
+def _triangle(pix,zbuf,w,h,pts,cols,alpha,mode,texture=None,uvs=None):
+    (x0,y0,z0),(x1,y1,z1),(x2,y2,z2)=pts
+    minx=max(0,min(x0,x1,x2)); maxx=min(w-1,max(x0,x1,x2)); miny=max(0,min(y0,y1,y2)); maxy=min(h-1,max(y0,y1,y2))
+    den=(y1-y2)*(x0-x2)+(x2-x1)*(y0-y2)
+    if den==0:return 0
+    drawn=0
+    for y in range(miny,maxy+1):
+        for x in range(minx,maxx+1):
+            a_num=(y1-y2)*(x-x2)+(x2-x1)*(y-y2); b_num=(y2-y0)*(x-x2)+(x0-x2)*(y-y2); c_num=den-a_num-b_num
+            if den>0:
+                if a_num<0 or b_num<0 or c_num<0: continue
+            else:
+                if a_num>0 or b_num>0 or c_num>0: continue
+            z=(z0*a_num+z1*b_num+z2*c_num)//den; idx=y*w+x
+            if z>=zbuf[idx]: continue
+            zbuf[idx]=z
+            if texture and uvs:
+                tw,th,tb=texture; u=(uvs[0][0]*a_num+uvs[1][0]*b_num+uvs[2][0]*c_num)//den; v=(uvs[0][1]*a_num+uvs[1][1]*b_num+uvs[2][1]*c_num)//den
+                tx=max(0,min(tw-1,u*tw//1_000_000)); ty=max(0,min(th-1,(1_000_000-v)*th//1_000_000)); ti=(ty*tw+tx)*3; src=tuple(tb[ti:ti+3])
+            else: src=cols
+            pix[idx]=blend(pix[idx],src,alpha,mode); drawn+=1
+    return drawn
 
+def _render_mesh(pix,w,h,layer,frame,cx,cy,zoom,cache,mesh):
+    s=layer['start_frame'];e=layer['end_frame']; depth=sample(layer['depth'],frame,s,e); size=sample(layer['size'],frame,s,e)*zoom//1000; rx=sample(layer['rot_x_mdeg'],frame,s,e);ry=sample(layer['rot_y_mdeg'],frame,s,e);rz=sample(layer['rot_z_mdeg'],frame,s,e)
+    lx=sample(layer['x'],frame,s,e);ly=sample(layer['y'],frame,s,e); sx=_camera(lx,cx,zoom,w//2)-w//2; sy=_camera(ly,cy,zoom,h//2)-h//2
+    verts=mesh['vertices']
+    if layer.get('morph_media_id'):
+        other=cache.mesh(layer['morph_media_id']); mm=max(0,min(1000,sample(layer.get('morph_milli',0),frame,s,e)))
+        if len(other['vertices'])==len(verts): verts=[tuple(a[k]+(b[k]-a[k])*mm//1000 for k in range(3)) for a,b in zip(verts,other['vertices'])]
+    proj=[project_vertex(rotate_xyz(v,rx,ry,rz),sx,sy,depth,size,w,h) for v in verts]
+    tex=None
+    if layer.get('texture_media_id'):
+        tw,th,tb=cache.image_frame(layer['texture_media_id'],0); tex=(tw,th,tb)
+    zbuf=[10**12]*(w*h); triangles=0
+    for face in mesh['faces']:
+        ids=[r[0] for r in face]; pts=[proj[i] for i in ids]
+        # backface/lighting in screen space
+        cross=(pts[1][0]-pts[0][0])*(pts[2][1]-pts[0][1])-(pts[1][1]-pts[0][1])*(pts[2][0]-pts[0][0])
+        if cross==0: continue
+        shade=650+min(350,abs(cross)//20); col=tuple(clamp(c*shade//1000) for c in layer['color'])
+        uv=None
+        if tex and all(r[1] is not None for r in face): uv=[mesh['uvs'][r[1]] for r in face]
+        triangles+=_triangle(pix,zbuf,w,h,pts,col,_fade(layer,frame,sample(layer['opacity_milli'],frame,s,e)),layer['blend_mode'],tex,uv)>0
+    # simple screen-space cast shadow projection
+    shadow_tris=0
+    if layer.get('shadow'):
+        sp=[(x+30,y+20,z+1000) for x,y,z in proj]; zb=[10**12]*(w*h)
+        for face in mesh['faces']:
+            pts=[sp[r[0]] for r in face]; shadow_tris+=_triangle(pix,zb,w,h,pts,(8,8,12),250,'multiply')>0
+    return {'triangles':triangles,'shadow_triangles':shadow_tris,'depth':depth,'size':size,'rotation_mdeg':[rx,ry,rz]}
 
-def render_frame(project:dict[str,Any],frame:int,library:dict[str,EffectOrgan],media_assets:dict[str,dict[str,Any]]|None=None)->tuple[bytes,dict[str,Any]]:
-    width=project["canvas"]["width"]; height=project["canvas"]["height"]
-    if frame<0 or frame>=project["duration_frames"]: raise RenderError("frame out of range")
-    pixels=[tuple(project["background"]) for _ in range(width*height)]
-    camera=project["camera"]; cx=sample(camera["x"],frame,0,project["duration_frames"]); cy=sample(camera["y"],frame,0,project["duration_frames"]); zoom=sample(camera["zoom_milli"],frame,0,project["duration_frames"])
+def _bone_pose(layer,frame):
+    rig=layer.get('rig',{}); bones=rig.get('bones',[]); clip=layer.get('clip',{}).get('bones',{}) if isinstance(layer.get('clip'),dict) else {}; poses={}
+    for b in bones:
+        bid=b['id']; parent=b.get('parent'); angle=int(b.get('angle_mdeg',0)); angle+=sample(clip.get(bid,0),frame,layer['start_frame'],layer['end_frame']) if bid in clip else 0
+        length=int(b.get('length',20)); base_x=int(b.get('x',0)); base_y=int(b.get('y',0))
+        if parent and parent in poses: bx,by,pa=poses[parent]['end_x'],poses[parent]['end_y'],poses[parent]['angle']; angle+=pa
+        else: bx,by=base_x,base_y
+        ss,cc=sincos_mdeg(angle); ex=bx+length*cc//CORDIC_SCALE; ey=by+length*ss//CORDIC_SCALE; poses[bid]={'x':bx,'y':by,'end_x':ex,'end_y':ey,'angle':angle}
+    return poses
+
+def render_frame(project:dict[str,Any],frame:int,library:dict[str,EffectOrgan],cache:MediaCache)->tuple[bytes,dict[str,Any]]:
+    w=project['canvas']['width']; h=project['canvas']['height']; bg=tuple(project['background']); pix=[bg]*(w*h)
+    cam=project['camera']; cx=sample(cam['x'],frame,0,project['duration_frames']);cy=sample(cam['y'],frame,0,project['duration_frames']);zoom=sample(cam['zoom_milli'],frame,0,project['duration_frames'])
     visible=[]
-    media_assets=media_assets or {}
-    for layer in project["layers"]:
-        if not (layer["start_frame"]<=frame<layer["end_frame"]): continue
-        start,end=layer["start_frame"],layer["end_frame"]
-        x=sample(layer["x"],frame,start,end); y=sample(layer["y"],frame,start,end); alpha=_fade_alpha(layer,frame,sample(layer["opacity_milli"],frame,start,end))
-        sx=_camera_project(x,cx,zoom,width//2); sy=_camera_project(y,cy,zoom,height//2); mode=layer.get("blend_mode","normal")
-        rec={"id":layer["id"],"kind":layer["kind"],"x":sx,"y":sy,"opacity_milli":alpha,"z":layer["z"],"blend_mode":mode}
-        kind=layer["kind"]
-        if kind=="rect":
-            w=max(1,sample(layer["w"],frame,start,end)*zoom//1000); h=max(1,sample(layer["h"],frame,start,end)*zoom//1000); rec.update({"w":w,"h":h}); x0=sx-w//2; y0=sy-h//2
-            for py in range(max(0,y0),min(height,y0+h)):
-                for px in range(max(0,x0),min(width,x0+w)):
-                    idx=py*width+px; pixels[idx]=_blend_mode(pixels[idx],layer["color"],alpha,mode)
-        elif kind=="circle":
-            radius=max(1,sample(layer["radius"],frame,start,end)*zoom//1000); rec["radius"]=radius; rr=radius*radius
-            for py in range(max(0,sy-radius),min(height,sy+radius+1)):
-                dy=py-sy
-                for px in range(max(0,sx-radius),min(width,sx+radius+1)):
-                    dx=px-sx
-                    if dx*dx+dy*dy<=rr:
-                        idx=py*width+px; pixels[idx]=_blend_mode(pixels[idx],layer["color"],alpha,mode)
-        elif kind in {"image","video"}:
-            asset=media_assets.get(layer["media_id"])
-            if not asset: raise RenderError(f"media asset not prepared: {layer['media_id']}")
-            count=len(asset["frames"]); local=max(0,frame-start); source=layer["source_start_frame"]+(local*layer["playback_milli"]//1000)
-            if layer.get("loop") and count: source%=count
-            else: source=max(0,min(count-1,source))
-            mf=asset["frames"][source]; w=max(1,sample(layer["w"],frame,start,end)*zoom//1000); h=max(1,sample(layer["h"],frame,start,end)*zoom//1000)
-            scaled=scale_nearest(mf["pixels"],mf["width"],mf["height"],w,h); x0=sx-w//2; y0=sy-h//2
-            _draw_bitmap(pixels,width,height,scaled,w,h,x0,y0,alpha,mode,layer["color"])
-            rec.update({"w":w,"h":h,"media_id":layer["media_id"],"source_frame":source})
-        elif kind=="text":
-            rec.update(_draw_text(pixels,width,height,layer["text"],layer["scale"],layer["color"],layer["background_color"],layer["padding"],sx,sy,layer["align"],alpha)); rec["text"]=layer["text"]
-        elif kind=="cube3d":
-            depth=sample(layer["depth"],frame,start,end); size=max(1,sample(layer["size"],frame,start,end)); rx=sample(layer["rot_x_mdeg"],frame,start,end); ry=sample(layer["rot_y_mdeg"],frame,start,end); rz=sample(layer["rot_z_mdeg"],frame,start,end)
-            # 2D camera x/y are applied as world offsets; zoom scales primitive size.
-            world_x=(x-cx); world_y=(y-cy); size=max(1,size*zoom//1000)
-            geom=cube_geometry(world_x,world_y,depth,size,rx,ry,rz,width,height); draw_cube(pixels,width,height,geom,layer["color"],_blend_mode,alpha,mode)
-            rec.update({"depth":depth,"size":size,"rot_x_mdeg":rx,"rot_y_mdeg":ry,"rot_z_mdeg":rz,"visible_faces":[g["face"] for g in geom]})
-        elif kind=="mesh3d":
-            depth=sample(layer["depth"],frame,start,end); size=max(1,sample(layer["size"],frame,start,end)); rx=sample(layer["rot_x_mdeg"],frame,start,end); ry=sample(layer["rot_y_mdeg"],frame,start,end); rz=sample(layer["rot_z_mdeg"],frame,start,end); world_x=x-cx; world_y=y-cy; size=max(1,size*zoom//1000)
-            asset=media_assets.get(layer["media_id"]);
-            if not asset or asset.get("kind")!="mesh": raise RenderError(f"mesh asset not prepared: {layer['media_id']}")
-            geom=mesh_geometry(asset["mesh"],world_x,world_y,depth,size,rx,ry,rz,width,height); draw_mesh(pixels,width,height,geom,layer["color"],_blend_mode,alpha,mode)
-            rec.update({"media_id":layer["media_id"],"depth":depth,"size":size,"rot_x_mdeg":rx,"rot_y_mdeg":ry,"rot_z_mdeg":rz,"visible_triangles":len(geom)})
+    for layer in project['layers']:
+        if not(layer['start_frame']<=frame<layer['end_frame']): continue
+        s,e=layer['start_frame'],layer['end_frame']; alpha=_fade(layer,frame,sample(layer['opacity_milli'],frame,s,e)); x=sample(layer['x'],frame,s,e);y=sample(layer['y'],frame,s,e);sx=_camera(x,cx,zoom,w//2);sy=_camera(y,cy,zoom,h//2);mode=layer['blend_mode']; kind=layer['kind']; rec={'id':layer['id'],'kind':kind,'x':sx,'y':sy,'opacity_milli':alpha,'z':layer['z']}
+        if kind=='rect': rw=max(1,sample(layer['w'],frame,s,e)*zoom//1000);rh=max(1,sample(layer['h'],frame,s,e)*zoom//1000);_draw_rect(pix,w,h,sx,sy,rw,rh,layer['color'],alpha,mode);rec.update(w=rw,h=rh)
+        elif kind=='circle': r=max(1,sample(layer['radius'],frame,s,e)*zoom//1000);_draw_circle(pix,w,h,sx,sy,r,layer['color'],alpha,mode);rec['radius']=r
+        elif kind=='text':
+            tw,th,rgba,ev=_text_rgba(layer,cache); _composite_rgba(pix,w,h,rgba,tw,th,sx,sy,tw,th,sample(layer['rotation_mdeg'],frame,s,e),alpha,mode);rec.update(text_digest=digest(layer['text']),text_boundary=ev)
+        elif kind in {'image','video','child'}:
+            if kind=='child':
+                child=cache.child(layer['media_id']); count=child['project']['duration_frames']; idx=_source_index(layer,frame,count); fp=child['output']/'frames'/f'frame-{idx:06d}.ppm'; sw,sh,body=read_ppm(fp); rec['child_project_digest']=child['receipt']['project_digest'];rec['child_frame_manifest_digest']=child['receipt']['frame_manifest_digest']
+            else:
+                count=cache.frame_count(layer['media_id']);idx=_source_index(layer,frame,count);sw,sh,body=cache.image_frame(layer['media_id'],idx)
+            rgba=_rgba_from_rgb(sw,sh,body); dw=max(1,sample(layer['w'],frame,s,e)*zoom//1000);dh=max(1,sample(layer['h'],frame,s,e)*zoom//1000);mask=None
+            if layer.get('mask_media_id'): mask=cache.image_frame(layer['mask_media_id'],0)
+            _composite_rgba(pix,w,h,rgba,sw,sh,sx,sy,dw,dh,sample(layer['rotation_mdeg'],frame,s,e),alpha,mode,sample(layer.get('wipe_milli',1000),frame,s,e),layer.get('chroma_key'),layer.get('chroma_tolerance',0),mask);rec.update(source_frame=idx,w=dw,h=dh,mask_media_id=layer.get('mask_media_id'),chroma_key=layer.get('chroma_key'))
+        elif kind=='particles': _draw_particles(pix,w,h,layer,frame,sx,sy,alpha,mode);rec['particle_count']=layer['count']
+        elif kind in {'cube3d','mesh3d','skinned_mesh3d'}:
+            mesh=cube_mesh() if kind=='cube3d' else cache.mesh(layer['media_id']); rec.update(_render_mesh(pix,w,h,layer,frame,cx,cy,zoom,cache,mesh))
+        elif kind=='rig2d':
+            poses=_bone_pose(layer,frame)
+            for p in poses.values():
+                steps=max(abs(p['end_x']-p['x']),abs(p['end_y']-p['y']),1)
+                for k in range(steps+1):
+                    bx=sx+p['x']+(p['end_x']-p['x'])*k//steps;by=sy+p['y']+(p['end_y']-p['y'])*k//steps;_draw_circle(pix,w,h,bx,by,layer['bone_width'],layer['color'],alpha,mode)
+            rec['bone_count']=len(poses)
         visible.append(rec)
-
-    caption_rows=[]
-    for cap in project.get("captions",[]):
-        if cap["start_frame"]<=frame<cap["end_frame"]:
-            tw,th=measure(cap["text"],cap["scale"]); margin=max(4,cap["padding"]+2)
-            cypos=margin+(th//2+cap["padding"]) if cap["position"]=="top" else height//2 if cap["position"]=="middle" else height-margin-(th//2+cap["padding"])
-            box=_draw_text(pixels,width,height,cap["text"],cap["scale"],cap["color"],cap["background_color"],cap["padding"],width//2,cypos,"center",1000)
-            caption_rows.append({"id":cap["id"],"text":cap["text"],**box})
-
+    # captions are canonical overlay state
+    for cap in project.get('captions',[]):
+        if cap['start_frame']<=frame<cap['end_frame']:
+            lay={'text':cap['text'],'scale':cap['scale'],'color':[255,255,255],'padding':2,'background_color':[0,0,0],'font_media_id':cap.get('font_media_id'),'font_size':cap.get('font_size',14)}
+            tw,th,rgba,ev=_text_rgba(lay,cache); cypos=h-th//2-3 if cap['position']=='bottom' else th//2+3;_composite_rgba(pix,w,h,rgba,tw,th,w//2,cypos,tw,th,0,900,'normal');visible.append({'id':cap['id'],'kind':'caption','text_digest':digest(cap['text']),'text_boundary':ev})
     refs=[]
-    for ref in project["effects"]:
-        if ref not in library: raise RenderError(f"missing effect organ: {ref}")
-        organ=library[ref]; pixels=[organ.apply(r,g,b,i%width,i//width) for i,(r,g,b) in enumerate(pixels)]; refs.append(ref)
-    header=f"P6\n{width} {height}\n255\n".encode("ascii"); body=bytearray()
-    for r,g,b in pixels: body.extend((r,g,b))
-    ppm=header+bytes(body); pixel_digest="sha256:"+hashlib.sha256(bytes(body)).hexdigest()
-    state={"frame":frame,"camera":{"x":cx,"y":cy,"zoom_milli":zoom},"visible_layers":visible,"captions":caption_rows,"effects":refs,"pixel_digest":pixel_digest}; state["state_digest"]=digest(state)
-    return ppm,state
-
+    for ref in project['effects']:
+        if ref not in library: raise RenderError(f'missing effect organ: {ref}')
+        organ=library[ref];pix=[organ.apply(r,g,b,i%w,i//w) for i,(r,g,b) in enumerate(pix)];refs.append(ref)
+    body=bytearray()
+    for r,g,b in pix: body.extend((r,g,b))
+    ppm=f'P6\n{w} {h}\n255\n'.encode()+bytes(body); pd='sha256:'+hashlib.sha256(body).hexdigest();state={'frame':frame,'camera':{'x':cx,'y':cy,'zoom_milli':zoom},'visible_layers':visible,'effects':refs,'pixel_digest':pd};state['state_digest']=digest(state);return ppm,state
 
 def render_project(project:dict[str,Any],output_dir:Path,machine_root:Path)->dict[str,Any]:
-    output_dir=Path(output_dir); frames_dir=output_dir/"frames"; frames_dir.mkdir(parents=True,exist_ok=True)
-    library=load_effect_library(machine_root); media_assets,media_manifest=prepare_media(project,output_dir/"media-cache",machine_root)
-    states=[]; files=[]
-    for frame in range(project["duration_frames"]):
-        ppm,state=render_frame(project,frame,library,media_assets); p=frames_dir/f"frame-{frame:06d}.ppm"; p.write_bytes(ppm); states.append(state); files.append({"path":p.name,"digest":file_digest(p)})
-    manifest={"schema":"axm.framestate.frame-manifest/v0.2","project_digest":digest(project),"frame_count":len(states),"states":states,"files":files,"media_conform":media_manifest}; manifest["manifest_digest"]=digest(manifest)
-    (output_dir/"frame-manifest.json").write_bytes(canonical_json(manifest)+b"\n")
-    return manifest
+    output_dir=Path(output_dir);fd=output_dir/'frames';fd.mkdir(parents=True,exist_ok=True);lib=load_effect_library(machine_root);cache=MediaCache(project,output_dir,machine_root);states=[];files=[]
+    for f in range(project['duration_frames']):
+        ppm,state=render_frame(project,f,lib,cache);p=fd/f'frame-{f:06d}.ppm';p.write_bytes(ppm);states.append(state);files.append({'path':p.name,'digest':file_digest(p)})
+    m={'schema':'axm.framestate.frame-manifest/v0.4','project_digest':digest(project),'media_manifest_digest':cache.manifest['manifest_digest'],'frame_count':len(states),'states':states,'files':files};m['manifest_digest']=digest(m);(output_dir/'frame-manifest.json').write_bytes(canonical_json(m)+b'\n');return m

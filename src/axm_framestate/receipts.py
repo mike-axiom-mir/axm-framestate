@@ -1,100 +1,30 @@
 from __future__ import annotations
-
-import json
-import platform
-import shutil
-import subprocess
+import json, platform, shutil, subprocess
 from pathlib import Path
 from typing import Any
-
 from .audio import render_audio
-from .captions import write_webvtt
-from .canonical import canonical_json, digest, file_digest
+from .canonical import canonical_json,digest,file_digest
 from .render import render_project
+from .captions import export_vtt
+from .media import ffmpeg_version
 
 
-def _ffmpeg_version() -> str | None:
-    ffmpeg = shutil.which("ffmpeg")
-    if not ffmpeg:
-        return None
-    proc = subprocess.run([ffmpeg, "-version"], capture_output=True, text=True, check=False)
-    return proc.stdout.splitlines()[0] if proc.stdout else "ffmpeg-present-version-unknown"
+def render_with_receipt(project:dict[str,Any],output_dir:Path,machine_root:Path,*,assemble:bool=True,profile:str='h264')->dict[str,Any]:
+    out=Path(output_dir);out.mkdir(parents=True,exist_ok=True)
+    fm=render_project(project,out,machine_root);am=render_audio(project,out/'audio.wav',machine_root,out);subs=export_vtt(project,out/'captions.vtt')
+    ver=ffmpeg_version();video=None;assembly={'attempted':False,'succeeded':False,'external_boundary':'ffmpeg','version':ver,'bit_exact_claim':False,'profile':profile}
+    if assemble and ver:
+        assembly['attempted']=True;fps=project['canvas']['fps'];vp=out/'video.mp4';exe=shutil.which('ffmpeg') or 'ffmpeg'
+        if profile=='fast': vcodec=['-c:v','libx264','-preset','veryfast','-crf','24']
+        elif profile=='quality': vcodec=['-c:v','libx264','-preset','slow','-crf','17']
+        else: vcodec=['-c:v','libx264','-preset','medium','-crf','20']
+        cmd=[exe,'-y','-loglevel','error','-framerate',str(fps),'-i',str(out/'frames'/'frame-%06d.ppm'),'-i',str(out/'audio.wav'),*vcodec,'-pix_fmt','yuv420p','-c:a','aac','-b:a','192k','-shortest','-movflags','+faststart',str(vp)]
+        p=subprocess.run(cmd,capture_output=True,text=True,check=False);assembly.update(returncode=p.returncode,stderr=p.stderr[-4000:])
+        if p.returncode==0 and vp.is_file(): video={'path':str(vp),'digest':file_digest(vp)};assembly['succeeded']=True
+    rec={'schema':'axm.framestate.render-receipt/v0.4','project_id':project['id'],'project_digest':digest(project),'media_manifest_digest':fm['media_manifest_digest'],'frame_manifest_digest':fm['manifest_digest'],'audio_manifest':am,'subtitle_export':subs,'video':video,'assembly':assembly,'environment':{'python':platform.python_version(),'platform':platform.platform()},'truth_boundary':{'canonical_project':'normalized and digest-bound','frame_state':'integer/fixed-point native state plus exact PPM bytes','media':'input bytes digest-bound; Pillow/FFmpeg/font runtimes remain named boundaries','audio':'exact mixed PCM/WAV current-runtime truth; imported/speech boundaries receipted','container_video':'external FFmpeg encoding boundary; no universal MP4 bit-identity claim'}};rec['receipt_digest']=digest(rec);(out/'render-receipt.json').write_bytes(canonical_json(rec)+b'\n');return rec
 
-
-def render_with_receipt(project: dict[str, Any], output_dir: Path, machine_root: Path, *, assemble: bool = True) -> dict[str, Any]:
-    output_dir = Path(output_dir)
-    output_dir.mkdir(parents=True, exist_ok=True)
-    frame_manifest = render_project(project, output_dir, machine_root)
-    audio_manifest = render_audio(project, output_dir / "audio.wav", machine_root)
-    caption_manifest = write_webvtt(project, output_dir / "captions.vtt")
-    ffmpeg_version = _ffmpeg_version()
-    video = None
-    assembly = {
-        "attempted": False,
-        "succeeded": False,
-        "external_boundary": "ffmpeg",
-        "version": ffmpeg_version,
-        "bit_exact_claim": False,
-    }
-    if assemble and ffmpeg_version:
-        assembly["attempted"] = True
-        fps = project["canvas"]["fps"]
-        video_path = output_dir / "video.mp4"
-        command = [
-            shutil.which("ffmpeg") or "ffmpeg", "-y", "-loglevel", "error",
-            "-framerate", str(fps), "-i", str(output_dir / "frames" / "frame-%06d.ppm"),
-            "-i", str(output_dir / "audio.wav"),
-            "-c:v", "libx264", "-pix_fmt", "yuv420p", "-c:a", "aac", "-shortest",
-            "-movflags", "+faststart", str(video_path),
-        ]
-        proc = subprocess.run(command, capture_output=True, text=True, check=False)
-        assembly.update({"returncode": proc.returncode, "stderr": proc.stderr[-4000:]})
-        if proc.returncode == 0 and video_path.is_file():
-            video = {"path": str(video_path), "digest": file_digest(video_path)}
-            assembly["succeeded"] = True
-    receipt = {
-        "schema": "axm.framestate.render-receipt/v0.2",
-        "project_id": project["id"],
-        "project_digest": digest(project),
-        "frame_manifest_digest": frame_manifest["manifest_digest"],
-        "audio_manifest": audio_manifest,
-        "caption_manifest": caption_manifest,
-        "video": video,
-        "assembly": assembly,
-        "environment": {"python": platform.python_version(), "platform": platform.platform()},
-        "truth_boundary": {
-            "canonical_project": "normalized and digest-bound",
-            "frame_state": "deterministic integer timeline plus exact PPM bytes receipted",
-            "audio": "exact mixed WAV bytes receipted; imported audio decode is an explicit FFmpeg boundary",
-            "media": "image/video inputs are digest-bound and conformed to exact PPM frames through an explicit FFmpeg boundary",
-            "captions": "caption cues render through the bundled bitmap font and export exact WebVTT bytes",
-            "container_video": "external FFmpeg encoding boundary; no cross-machine bit-identical MP4 claim",
-        },
-    }
-    receipt["receipt_digest"] = digest(receipt)
-    (output_dir / "render-receipt.json").write_bytes(canonical_json(receipt) + b"\n")
-    return receipt
-
-
-def verify_repeat(project: dict[str, Any], base_dir: Path, machine_root: Path) -> dict[str, Any]:
-    first = render_with_receipt(project, Path(base_dir) / "repeat-a", machine_root, assemble=False)
-    second = render_with_receipt(project, Path(base_dir) / "repeat-b", machine_root, assemble=False)
-    a_manifest = json.loads((Path(base_dir) / "repeat-a" / "frame-manifest.json").read_text(encoding="utf-8"))
-    b_manifest = json.loads((Path(base_dir) / "repeat-b" / "frame-manifest.json").read_text(encoding="utf-8"))
-    checks = {
-        "project_digest_equal": first["project_digest"] == second["project_digest"],
-        "frame_manifest_equal": a_manifest == b_manifest,
-        "audio_pcm_equal": first["audio_manifest"]["pcm_digest"] == second["audio_manifest"]["pcm_digest"],
-        "audio_wav_equal": first["audio_manifest"]["wav_digest"] == second["audio_manifest"]["wav_digest"],
-    }
-    result = {
-        "schema": "axm.framestate.repeat-verification/v0.2",
-        "passed": all(checks.values()),
-        "checks": checks,
-        "project_digest": first["project_digest"],
-        "frame_manifest_digest": a_manifest["manifest_digest"],
-        "audio_pcm_digest": first["audio_manifest"]["pcm_digest"],
-        "claim": "repeat proof covers canonical state, frame states, PPM frame bytes and WAV bytes in this runtime; it does not claim arbitrary external codecs are bit-identical",
-    }
-    result["verification_digest"] = digest(result)
-    return result
+def verify_repeat(project:dict[str,Any],base_dir:Path,machine_root:Path)->dict[str,Any]:
+    a=render_with_receipt(project,Path(base_dir)/'repeat-a',machine_root,assemble=False);b=render_with_receipt(project,Path(base_dir)/'repeat-b',machine_root,assemble=False)
+    am=json.loads((Path(base_dir)/'repeat-a'/'frame-manifest.json').read_text());bm=json.loads((Path(base_dir)/'repeat-b'/'frame-manifest.json').read_text());ame=json.loads((Path(base_dir)/'repeat-a'/'media-manifest.json').read_text());bme=json.loads((Path(base_dir)/'repeat-b'/'media-manifest.json').read_text())
+    checks={'project_digest_equal':a['project_digest']==b['project_digest'],'media_manifest_equal':ame==bme,'frame_manifest_equal':am==bm,'audio_pcm_equal':a['audio_manifest']['pcm_digest']==b['audio_manifest']['pcm_digest'],'audio_wav_equal':a['audio_manifest']['wav_digest']==b['audio_manifest']['wav_digest']}
+    result={'schema':'axm.framestate.repeat-verification/v0.4','passed':all(checks.values()),'checks':checks,'project_digest':a['project_digest'],'media_manifest_digest':ame['manifest_digest'],'frame_manifest_digest':am['manifest_digest'],'audio_pcm_digest':a['audio_manifest']['pcm_digest'],'claim':'repeat proof covers normalized project, conformed media in this runtime, frame state/PPM and mixed PCM/WAV; external codec/font/speech implementations are versioned boundaries'};result['verification_digest']=digest(result);return result

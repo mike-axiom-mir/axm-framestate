@@ -8,4 +8,5 @@ effect-organs/
 examples/media/*.ppm
 examples/media/*.wav
 examples/media/*.mp4
+examples/media/*.obj
 examples/media/clipframes/

@@ -28,18 +28,10 @@ FrameState must remain a **standalone machine**. Other AXM repositories may be s
 
 ## Truth and verification
 
-Do not claim a capability is implemented because a schema or descriptor exists. Distinguish at minimum between:
-
-- described;
-- validated;
-- executable;
-- rendered;
-- tested;
-- deterministically reproduced;
-- externally provided or black-box.
+Do not claim a capability is implemented because a schema or descriptor exists. Distinguish at minimum between described, validated, executable, rendered, tested, deterministically reproduced, and externally provided/black-box capability.
 
 Failures and missing capabilities stay visible rather than being silently replaced with lower-quality behavior.
 
 ## Bootstrap note
 
-This repository began empty, so this `AGENTS.md` file is the one unavoidable bootstrap commit placed directly on `main` to establish a base ref. All subsequent implementation work follows the one-chat / one-PR-lane rule above.
+This repository began empty, so this `AGENTS.md` file was the unavoidable bootstrap commit placed directly on `main` to establish a base ref. All subsequent implementation work follows the one-chat / one-PR-lane rule above.

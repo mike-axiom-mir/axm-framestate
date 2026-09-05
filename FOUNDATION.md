@@ -1,43 +1,43 @@
 # FrameState foundation
 
-FrameState is a persistent, inspectable video-creation body. Its current internal architecture is **working scaffolding, not canon**.
+FrameState is a persistent, inspectable video-creation body. Its internal architecture is working scaffolding, not canon.
 
 ## The only permanent roots
 
-Every supported live self-change must preserve:
+Every supported live change must preserve:
 
-- **Truth** — claims stay attached to evidence; unknowns and external boundaries stay visible.
-- **Agency** — creation and machine growth do not silently seize authority from the human, machine or supplied source.
-- **Continuity** — useful state, lineage and recovery remain preservable across change.
-- **Wisdom Before Speed** — faster growth never overrides evidence, recoverability or the other roots.
+- **Truth**: claims stay attached to evidence; unknowns and external boundaries remain visible.
+- **Agency**: creation and machine growth do not silently seize authority from the human, machine or supplied source.
+- **Continuity**: useful state, lineage and recovery remain preservable across change.
+- **Wisdom Before Speed**: faster growth never overrides evidence, recoverability or the other roots.
 
 These roots apply above humans, AI instances and machine subsystems equally. They are not a benchmark, reward score or claim that any participant already satisfies them perfectly.
 
-## Current body
-
-The machine presently separates:
+## Current working layers
 
 1. canonical project truth;
-2. time/keyframe sampling;
-3. shot/scene compilation;
-4. media conforming;
-5. 2D/3D composition and effect organs;
-6. captions and audio composition;
-7. render/state receipts;
-8. mechanical review and gap exposure;
-9. detached bounded growth;
-10. daily whole-body recovery.
+2. integer/fixed-point temporal sampling;
+3. shot/scene compilation and composition nesting;
+4. media/audio/font conforming boundaries;
+5. 2D composition, masks/chroma, particles and effect organs;
+6. 3D triangle geometry, UV sampling, morphing and shadow projection;
+7. bone-rig animation;
+8. captions, subtitles and audio composition;
+9. frame/audio/media/render receipts;
+10. mechanical review, frame analysis and explicit gap exposure;
+11. detached bounded growth;
+12. daily whole-body recovery.
 
-Those layers may be rearranged or replaced if use produces a better structure that still fits the roots.
+These layers may be rearranged or replaced when use produces a better structure that still fits the roots.
 
 ## Determinism boundary
 
-FrameState aims to make the **project state, internal sampling, generated frame bytes and internally mixed audio observable and replayable**. External codecs, media decoders and speech engines are not declared to become native deterministic machinery merely because FrameState calls them.
+FrameState aims to make project state, internal sampling, generated frame bytes and internally mixed audio observable and replayable. External codecs, decoders, speech engines and font rasterizers do not become native deterministic machinery merely because FrameState calls them.
 
-Instead, external input bytes, tool/version identity and the resulting conformed bytes are receipted. This lets exact current-run truth remain inspectable without making false cross-machine promises.
+Instead, source bytes, boundary identity and resulting conformed/output bytes are receipted. This preserves exact current-run truth without false cross-machine promises.
 
 ## Growth model
 
-Known capability should remain reusable. Missing capability should become a named gap rather than a silent quality downgrade.
+Known capability remains reusable. Missing capability becomes a named gap rather than a silent quality downgrade.
 
-The current live self-growth transition is deliberately narrow: verified effect organs may be adopted after detached replay testing, four-root fit and recovery-snapshot establishment. Future growth mechanisms may broaden this, but arbitrary code mutation is not implied by the existence of one bounded evolution path.
+Current live self-growth is deliberately bounded to verified effect organs. A working bounded transition does not imply arbitrary code mutation authority.

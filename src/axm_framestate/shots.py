@@ -1,47 +1,36 @@
 from __future__ import annotations
-import json
 from pathlib import Path
 from typing import Any
-from .canonical import digest, canonical_json, file_digest
-from .media import read_ppm, scale_nearest
-from .render import render_project
-from .text import raster
+from .canonical import canonical_json,digest,file_digest
+from .media import read_ppm
+from .receipts import render_with_receipt
 
+SHOT_KINDS={'scene','shot','cut'}
 
-def derive_shots(project:dict[str,Any])->list[dict[str,Any]]:
-    duration=project["duration_frames"]
-    cuts={0,duration}
-    labels={0:"START"}
-    for marker in project.get("markers",[]):
-        if marker.get("kind") in {"cut","scene","shot"}:
-            cuts.add(marker["frame"]); labels[marker["frame"]]=marker["label"]
-    pts=sorted(cuts); out=[]
-    for i,(a,b) in enumerate(zip(pts,pts[1:])):
-        if b<=a: continue
-        out.append({"id":f"shot-{i+1:03d}","start_frame":a,"end_frame":b,"duration_frames":b-a,"label":labels.get(a,f"SHOT {i+1}"),"representative_frame":a+(b-a-1)//2})
-    return out
+def derive_shots(project:dict[str,Any])->dict[str,Any]:
+    marks=[m for m in project.get('markers',[]) if m.get('kind') in SHOT_KINDS]
+    if not marks or marks[0]['frame']!=0: marks=[{'frame':0,'label':'START','kind':'scene'},*marks]
+    uniq=[]; seen=set()
+    for m in sorted(marks,key=lambda x:(x['frame'],x['label'])):
+        if m['frame'] in seen: continue
+        seen.add(m['frame']);uniq.append(m)
+    rows=[]
+    for i,m in enumerate(uniq):
+        end=uniq[i+1]['frame'] if i+1<len(uniq) else project['duration_frames']
+        if end>m['frame']: rows.append({'index':i,'id':f"shot-{i:03d}",'label':m['label'],'start_frame':m['frame'],'end_frame':end,'representative_frame':m['frame']+(end-m['frame']-1)//2})
+    out={'schema':'axm.framestate.shots/v0.1','project_digest':digest(project),'shots':rows};out['digest']=digest(out);return out
 
-
-def _ppm_bytes(w:int,h:int,pixels:list[tuple[int,int,int]])->bytes:
-    body=bytearray()
-    for p in pixels: body.extend(p)
-    return f"P6\n{w} {h}\n255\n".encode()+bytes(body)
-
-
-def build_storyboard(project:dict[str,Any],output_dir:Path,machine_root:Path,thumb_width:int=160)->dict[str,Any]:
-    output_dir=Path(output_dir); render_dir=output_dir/"source-render"; manifest=render_project(project,render_dir,machine_root); shots=derive_shots(project)
-    srcw=project["canvas"]["width"]; srch=project["canvas"]["height"]; tw=min(thumb_width,srcw); th=max(1,srch*tw//srcw); label_h=12
-    cols=min(3,max(1,len(shots))); rows=(len(shots)+cols-1)//cols; sheet_w=cols*tw; sheet_h=rows*(th+label_h); sheet=[(12,12,16)]*(sheet_w*sheet_h)
-    cells=[]
-    for i,shot in enumerate(shots):
-        f=shot["representative_frame"]; p=render_dir/"frames"/f"frame-{f:06d}.ppm"; w,h,px=read_ppm(p); scaled=scale_nearest(px,w,h,tw,th); col=i%cols; row=i//cols; ox=col*tw; oy=row*(th+label_h)
-        for y in range(th): sheet[(oy+y)*sheet_w+ox:(oy+y)*sheet_w+ox+tw]=scaled[y*tw:(y+1)*tw]
-        text=f"{shot['id']} F{f}"; fw,fh,bm=raster(text,1,[255,255,255])
-        tx=ox+2; ty=oy+th+2
-        for y in range(min(fh,label_h-2)):
-            for x in range(min(fw,tw-4)):
-                v=bm[y*fw+x]
-                if v is not None: sheet[(ty+y)*sheet_w+tx+x]=v
-        cells.append({**shot,"source_frame_digest":manifest["files"][f]["digest"]})
-    out=output_dir/"storyboard.ppm"; out.parent.mkdir(parents=True,exist_ok=True); out.write_bytes(_ppm_bytes(sheet_w,sheet_h,sheet))
-    result={"schema":"axm.framestate.storyboard/v0.2","project_digest":manifest["project_digest"],"shots":cells,"storyboard":{"path":str(out),"digest":file_digest(out),"width":sheet_w,"height":sheet_h}}; result["storyboard_digest"]=digest(result); (output_dir/"storyboard.json").write_bytes(canonical_json(result)+b'\n'); return result
+def storyboard(project:dict[str,Any],output_dir:Path,machine_root:Path)->dict[str,Any]:
+    out=Path(output_dir);render_dir=out/'render';rec=render_with_receipt(project,render_dir,machine_root,assemble=False);shots=derive_shots(project);panels=[]
+    frames=[]
+    for row in shots['shots']:
+        p=render_dir/'frames'/f"frame-{row['representative_frame']:06d}.ppm"; w,h,b=read_ppm(p);frames.append((w,h,b,row));panels.append({**row,'frame_digest':file_digest(p)})
+    if frames:
+        fw,fh=frames[0][0],frames[0][1]; gap=4; sw=fw*len(frames)+gap*(len(frames)-1);sh=fh;body=bytearray([20,20,24])*(sw*sh)
+        for j,(w,h,b,row) in enumerate(frames):
+            ox=j*(fw+gap)
+            for y in range(min(h,sh)):
+                src=y*w*3;dst=(y*sw+ox)*3;body[dst:dst+w*3]=b[src:src+w*3]
+        sp=out/'storyboard.ppm';sp.parent.mkdir(parents=True,exist_ok=True);sp.write_bytes(f'P6\n{sw} {sh}\n255\n'.encode()+body)
+    else: sp=out/'storyboard.ppm';sp.write_bytes(b'P6\n1 1\n255\n\x00\x00\x00')
+    result={'schema':'axm.framestate.storyboard/v0.1','project_digest':rec['project_digest'],'frame_manifest_digest':rec['frame_manifest_digest'],'shot_digest':shots['digest'],'panels':panels,'storyboard_digest':file_digest(sp),'path':str(sp)};result['digest']=digest(result);(out/'storyboard.json').write_bytes(canonical_json(result)+b'\n');return result

@@ -1,12 +1,12 @@
 # Donor knowledge, not runtime dependency
 
-FrameState was built as fresh standalone source. No other AXM repository is imported, cloned or required at runtime.
+FrameState is fresh standalone source. No other AXM repository is imported, cloned or required at runtime.
 
-Useful donor patterns inspected while designing the current body included:
+Useful donor patterns include:
 
-- Universal Creation: inspectable atom/component/organ/capability layering, explicit transparency boundaries, detached tested creation units, daily recovery and bounded self-evolution;
-- AXM master creation registry: frame/timecode/keyframe/timeline/video/audio/shot/cinematic-scene/caption/subtitle/media/render-queue/camera-animation vocabulary plus organ-level concepts such as animation engine, compositor, encoder/decoder, media conformer, shot manager, storyboard generator and caption/subtitle organ;
-- prior temporal creation work: reference -> grammar -> build -> render -> inspect -> gap -> generalize -> replay;
-- broader AXM state work: canonical state as the truth surface and specialist/check machinery as views over that state rather than independent authority.
+- Universal Creation: inspectable capability layering, explicit boundaries, detached tested growth, daily recovery and four-root self-change fit;
+- AXM creation vocabulary: frame/timecode/keyframe/timeline/video/audio/shot/cinematic-scene/caption/subtitle/media/render-queue/camera-animation concepts;
+- temporal creation work: reference -> grammar -> build -> render -> inspect -> gap -> generalize -> replay;
+- broader state work: canonical state as truth surface while specialist/check machinery remains a view rather than independent authority.
 
-These were treated as evidence and vocabulary, not canon. The only permanent authority layer carried into FrameState is the four roots: Truth, Agency, Continuity and Wisdom Before Speed.
+These are donor ideas and evidence, not canon. The reconnect recovery also used surviving v0.3 documentation as a feature/evidence map without pretending the lost uncommitted source bytes were recovered.

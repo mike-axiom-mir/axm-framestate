@@ -1,109 +1,113 @@
 from __future__ import annotations
-
-import hashlib
-import shutil
-import subprocess
+import hashlib, io, json, shutil, subprocess
 from pathlib import Path
 from typing import Any
+from PIL import Image
+from .canonical import canonical_json, digest, file_digest, load_project
 
-from .canonical import file_digest, digest
-from .three_d import load_obj
+class MediaError(RuntimeError): pass
 
+def resolve_source(root:Path, declared:str)->Path:
+    p=Path(declared).expanduser()
+    if p.is_absolute(): return p.resolve()
+    return (Path(root).resolve()/p).resolve()
 
-class MediaError(RuntimeError):
-    pass
+def ffmpeg_version()->str|None:
+    exe=shutil.which('ffmpeg')
+    if not exe: return None
+    p=subprocess.run([exe,'-version'],capture_output=True,text=True,check=False)
+    return p.stdout.splitlines()[0] if p.stdout else 'ffmpeg-present-version-unknown'
 
+def pillow_version()->str:
+    import PIL
+    return f'Pillow {getattr(PIL,"__version__","unknown")}'
 
-def ffmpeg_version() -> str | None:
-    exe = shutil.which("ffmpeg")
-    if not exe:
-        return None
-    p = subprocess.run([exe, "-version"], capture_output=True, text=True, check=False)
-    return p.stdout.splitlines()[0] if p.stdout else "ffmpeg-present-version-unknown"
+def _ppm_bytes(img:Image.Image)->bytes:
+    rgb=img.convert('RGB'); w,h=rgb.size
+    return f'P6\n{w} {h}\n255\n'.encode('ascii')+rgb.tobytes()
 
+def read_ppm(path:Path)->tuple[int,int,bytes]:
+    raw=Path(path).read_bytes()
+    if not raw.startswith(b'P6'):
+        with Image.open(io.BytesIO(raw)) as im:
+            rgb=im.convert('RGB'); return rgb.width,rgb.height,rgb.tobytes()
+    # tiny parser, comments unsupported intentionally for internally emitted PPMs
+    head,body=raw.split(b'\n255\n',1)
+    parts=head.split()
+    return int(parts[1]),int(parts[2]),body
 
-def resolve_source(machine_root: Path, raw: str) -> Path:
-    p = Path(raw).expanduser()
-    if not p.is_absolute():
-        p = Path(machine_root) / p
-    return p.resolve()
+def conform_media(project:dict[str,Any], output_dir:Path, machine_root:Path)->dict[str,Any]:
+    output_dir=Path(output_dir); root=Path(machine_root); target=output_dir/'conformed-media'; target.mkdir(parents=True,exist_ok=True)
+    rows=[]; fps=project['canvas']['fps']; cw,ch=project['canvas']['width'],project['canvas']['height']
+    for m in project.get('media',[]):
+        src=resolve_source(root,m['path'])
+        if not src.is_file(): raise MediaError(f"media missing: {m['path']}")
+        evidence={'id':m['id'],'kind':m['kind'],'declared_path':m['path'],'source_digest':file_digest(src)}
+        if m['kind']=='image':
+            with Image.open(src) as im:
+                rgb=im.convert('RGB'); data=_ppm_bytes(rgb)
+            d=target/m['id']; d.mkdir(exist_ok=True); p=d/'frame-000000.ppm'; p.write_bytes(data)
+            evidence.update({'width':rgb.width,'height':rgb.height,'frame_count':1,'conformed_digest':file_digest(p),'boundary':pillow_version()})
+        elif m['kind']=='video':
+            exe=shutil.which('ffmpeg')
+            if not exe: raise MediaError('ffmpeg required for video media')
+            d=target/m['id']; d.mkdir(exist_ok=True)
+            for old in d.glob('frame-*.ppm'): old.unlink()
+            cmd=[exe,'-y','-loglevel','error','-i',str(src),'-vf',f'fps={fps}','-start_number','0',str(d/'frame-%06d.ppm')]
+            p=subprocess.run(cmd,capture_output=True,text=True,check=False)
+            if p.returncode!=0: raise MediaError(p.stderr[-4000:])
+            fs=sorted(d.glob('frame-*.ppm'))
+            if not fs: raise MediaError(f'video decoded zero frames: {src}')
+            evidence.update({'frame_count':len(fs),'frame_digests':[file_digest(x) for x in fs],'decoder':ffmpeg_version()})
+        elif m['kind']=='mesh':
+            evidence.update({'bytes':src.stat().st_size,'boundary':'native-obj-parser'})
+        elif m['kind']=='font': evidence.update({'bytes':src.stat().st_size,'boundary':pillow_version()})
+        elif m['kind']=='audio': evidence.update({'bytes':src.stat().st_size,'boundary':'audio-event-decoder'})
+        elif m['kind']=='framestate':
+            child=load_project(src); evidence.update({'child_project_digest':digest(child),'boundary':'native-framestate-child'})
+        rows.append(evidence)
+    result={'schema':'axm.framestate.media-manifest/v0.4','rows':rows}; result['manifest_digest']=digest(result)
+    (output_dir/'media-manifest.json').write_bytes(canonical_json(result)+b'\n')
+    return result
 
-
-def read_ppm(path: Path) -> tuple[int, int, list[tuple[int,int,int]]]:
-    data = Path(path).read_bytes()
-    if not data.startswith(b"P6"):
-        raise MediaError(f"unsupported conformed PPM: {path}")
-    i = 2
-    tokens=[]
-    n=len(data)
-    while len(tokens) < 3:
-        while i<n and chr(data[i]).isspace(): i+=1
-        if i<n and data[i]==35:
-            while i<n and data[i]!=10: i+=1
-            continue
-        j=i
-        while j<n and not chr(data[j]).isspace(): j+=1
-        tokens.append(data[i:j].decode('ascii'))
-        i=j
-    while i<n and chr(data[i]).isspace(): i+=1
-    w,h,maxv=map(int,tokens)
-    if maxv!=255: raise MediaError("PPM max value must be 255")
-    body=data[i:]
-    if len(body)!=w*h*3: raise MediaError("PPM payload size mismatch")
-    px=[(body[k],body[k+1],body[k+2]) for k in range(0,len(body),3)]
-    return w,h,px
-
-
-def _run(cmd: list[str]) -> None:
-    p=subprocess.run(cmd,capture_output=True,text=True,check=False)
-    if p.returncode!=0:
-        raise MediaError((p.stderr or "ffmpeg failed")[-4000:])
-
-
-def prepare_media(project: dict[str,Any], cache_dir: Path, machine_root: Path) -> tuple[dict[str,dict[str,Any]], dict[str,Any]]:
-    cache_dir=Path(cache_dir); cache_dir.mkdir(parents=True,exist_ok=True)
-    exe=shutil.which("ffmpeg")
-    assets: dict[str,dict[str,Any]]={}
-    rows=[]
-    for item in project.get("media",[]):
-        src=resolve_source(machine_root,item["path"])
-        if not src.is_file(): raise MediaError(f"media source missing: {src}")
-        target=cache_dir/item["id"]; target.mkdir(parents=True,exist_ok=True)
-        if item["kind"]=="mesh":
-            mesh=load_obj(src); assets[item["id"]]={"kind":"mesh","mesh":mesh,"source":src}; rows.append({"id":item["id"],"kind":"mesh","declared_path":item["path"],"source_digest":file_digest(src),"vertex_count":len(mesh["vertices"]),"triangle_count":len(mesh["triangles"])}); continue
-        if item["kind"]=="image":
-            out=target/"frame-000000.ppm"
-            if not exe: raise MediaError("ffmpeg required to conform image media")
-            _run([exe,"-y","-loglevel","error","-i",str(src),"-frames:v","1","-pix_fmt","rgb24",str(out)])
-            frame_files=[out]
-        elif item["kind"]=="video":
-            if not exe: raise MediaError("ffmpeg required to conform video media")
-            pattern=target/"frame-%06d.ppm"
-            _run([exe,"-y","-loglevel","error","-i",str(src),"-vf",f"fps={project['canvas']['fps']}","-pix_fmt","rgb24",str(pattern)])
-            frame_files=sorted(target.glob("frame-*.ppm"))
-            if not frame_files: raise MediaError(f"video decoded zero frames: {src}")
-        else:
-            continue
-        parsed=[read_ppm(p) for p in frame_files]
-        frames=[{"path":p,"width":v[0],"height":v[1],"pixels":v[2]} for p,v in zip(frame_files,parsed)]
-        assets[item["id"]]={"kind":item["kind"],"frames":frames,"source":src}
-        rows.append({
-            "id":item["id"],"kind":item["kind"],"declared_path":item["path"],
-            "source_digest":file_digest(src),"frame_count":len(frame_files),
-            "conformed_frame_digests":[file_digest(p) for p in frame_files],
-        })
-    manifest={"schema":"axm.framestate.media-conform/v0.2","ffmpeg":ffmpeg_version(),"assets":rows}
-    manifest["manifest_digest"]=digest(manifest)
-    return assets,manifest
-
-
-def scale_nearest(src: list[tuple[int,int,int]], sw:int, sh:int, dw:int, dh:int) -> list[tuple[int,int,int]]:
-    if dw<=0 or dh<=0: return []
-    out=[]
-    for y in range(dh):
-        sy=min(sh-1,(y*sh)//dh)
-        base=sy*sw
-        for x in range(dw):
-            sx=min(sw-1,(x*sw)//dw)
-            out.append(src[base+sx])
-    return out
+class MediaCache:
+    def __init__(self,project:dict[str,Any],output_dir:Path,machine_root:Path):
+        self.project=project; self.output_dir=Path(output_dir); self.root=Path(machine_root); self.by_id={m['id']:m for m in project.get('media',[])}
+        self.manifest=conform_media(project,output_dir,machine_root)
+        self._ppm:{}={}; self._mesh:{}={}; self._child:{}={}
+    def item(self,mid:str)->dict[str,Any]:
+        if mid not in self.by_id: raise MediaError(f'missing media id {mid}')
+        return self.by_id[mid]
+    def frame_count(self,mid:str)->int:
+        item=self.item(mid)
+        if item['kind']=='image': return 1
+        if item['kind']=='video': return len(list((self.output_dir/'conformed-media'/mid).glob('frame-*.ppm')))
+        if item['kind']=='framestate':
+            c=self.child(mid); return c['project']['duration_frames']
+        return 0
+    def image_frame(self,mid:str,index:int)->tuple[int,int,bytes]:
+        item=self.item(mid)
+        key=(mid,index)
+        if key in self._ppm: return self._ppm[key]
+        if item['kind']=='image': p=self.output_dir/'conformed-media'/mid/'frame-000000.ppm'
+        elif item['kind']=='video': p=self.output_dir/'conformed-media'/mid/f'frame-{index:06d}.ppm'
+        else: raise MediaError(f'{mid} is not image/video')
+        out=read_ppm(p); self._ppm[key]=out; return out
+    def mesh(self,mid:str):
+        if mid in self._mesh: return self._mesh[mid]
+        item=self.item(mid)
+        from .three_d import parse_obj
+        out=parse_obj(resolve_source(self.root,item['path'])); self._mesh[mid]=out; return out
+    def font_path(self,mid:str)->Path:
+        item=self.item(mid)
+        if item['kind']!='font': raise MediaError('font media expected')
+        return resolve_source(self.root,item['path'])
+    def child(self,mid:str)->dict[str,Any]:
+        if mid in self._child: return self._child[mid]
+        item=self.item(mid)
+        if item['kind']!='framestate': raise MediaError('framestate media expected')
+        path=resolve_source(self.root,item['path']); project=load_project(path)
+        child_out=self.output_dir/'child'/mid
+        from .receipts import render_with_receipt
+        receipt=render_with_receipt(project,child_out,self.root,assemble=False)
+        result={'project':project,'output':child_out,'receipt':receipt}; self._child[mid]=result; return result
