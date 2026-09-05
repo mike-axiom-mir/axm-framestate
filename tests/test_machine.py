@@ -5,12 +5,13 @@ from axm_framestate.canonical import load_project,normalize_project,ProjectError
 from axm_framestate.effects import normalize_effect,test_effect_manifest
 from axm_framestate.capabilities import analyze_requirements
 from axm_framestate.review import review_project
-from axm_framestate.forge import adopt_effect,spawn_effect
+from axm_framestate.forge import adopt_effect,spawn_effect,adopt_recipe,spawn_recipe
 from axm_framestate.receipts import verify_repeat,render_with_receipt
-from axm_framestate.director import compile_plan
+from axm_framestate.director import compile_plan,compile_brief
 from axm_framestate.shots import derive_shots,storyboard
 from axm_framestate.analysis import analyze_render
 from axm_framestate.three_d import sincos_mdeg,parse_obj
+from axm_framestate.recipes import normalize_recipe,test_recipe_manifest,load_recipe_library
 
 ROOT=Path(__file__).resolve().parents[1]
 
@@ -59,7 +60,6 @@ class FrameStateTests(unittest.TestCase):
 
     def test_compiled_movie_renders_mixed_media_stereo_and_3d(self):
         raw=json.loads((ROOT/'examples'/'movie_day_one.plan.json').read_text());p=compile_plan(raw)
-        # shrink duration per shot by sampling only first 18 frames of compiled movie to keep unit gate fast
         p={**p,'duration_frames':18,'layers':[l for l in p['layers'] if l['start_frame']<18],'captions':[c for c in p['captions'] if c['start_frame']<18],'audio':[a for a in p['audio'] if a['start_frame']<18],'markers':[m for m in p['markers'] if m['frame']<18]}
         for l in p['layers']:l['end_frame']=min(l['end_frame'],18)
         for c in p['captions']:c['end_frame']=min(c['end_frame'],18)
@@ -76,5 +76,21 @@ class FrameStateTests(unittest.TestCase):
         p=load_project(ROOT/'examples'/'first_light.json')
         with tempfile.TemporaryDirectory() as td:
             r=storyboard(p,Path(td),ROOT);self.assertTrue(Path(r['path']).is_file());self.assertEqual(r['project_digest'],normalize_project(p) and r['project_digest'])
+
+    def test_creative_brief_compiles_to_canonical_movie(self):
+        raw=json.loads((ROOT/'examples'/'creative_brief.json').read_text());p=compile_brief(raw,ROOT)
+        self.assertEqual(p['duration_frames'],144);self.assertEqual(p['metadata']['compiled_from'],'shot-plan');self.assertEqual(p['metadata']['beat_count'],5);self.assertEqual(len(derive_shots(p)['shots']),5)
+
+    def test_recipe_fixture_replay_and_adoption(self):
+        raw=json.loads((ROOT/'examples'/'lower_third.recipe.json').read_text());self.assertTrue(test_recipe_manifest(normalize_recipe(raw))['passed']);rf=raw['root_fit']
+        with tempfile.TemporaryDirectory() as td:
+            machine=Path(td)/'machine';machine.mkdir();(machine/'seed.txt').write_text('seed');cf=Path(td)/'candidate.json';cf.write_text(json.dumps(raw));sp=spawn_recipe(cf,Path(td)/'spawned');r=adopt_recipe(machine,Path(sp['path']),'test reusable shot recipe',rf);self.assertTrue(r['adopted']);self.assertIn('axm.recipe.lower-third@1.0.0',load_recipe_library(machine));self.assertTrue(Path(r['recovery_snapshot']['path']).is_file())
+
+    def test_installed_recipe_can_drive_creative_brief(self):
+        raw=json.loads((ROOT/'examples'/'lower_third.recipe.json').read_text());rf=raw['root_fit']
+        with tempfile.TemporaryDirectory() as td:
+            machine=Path(td)/'machine';machine.mkdir();(machine/'seed.txt').write_text('seed');cf=Path(td)/'candidate.json';cf.write_text(json.dumps(raw));sp=spawn_recipe(cf,Path(td)/'spawned');self.assertTrue(adopt_recipe(machine,Path(sp['path']),'install for brief',rf)['adopted'])
+            brief={'schema':'axm.framestate.creative-brief/v0.1','id':'custom-brief','canvas':{'width':160,'height':90,'fps':12},'duration_frames':24,'style':'clean','format':'test','beats':[{'kind':'message','text':'CUSTOM RECIPE','recipe_ref':'axm.recipe.lower-third@1.0.0','values':{'text':'CUSTOM RECIPE','accent':[20,160,150]},'weight':1}]}
+            p=compile_brief(brief,machine);self.assertEqual(p['duration_frames'],24);self.assertTrue(any(l['id'].endswith('::label') for l in p['layers']))
 
 if __name__=='__main__':unittest.main()
