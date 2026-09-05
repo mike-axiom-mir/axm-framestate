@@ -26,8 +26,6 @@ Input: `examples/creative_brief.json`
 
 ## Compact brief repeat baseline
 
-A 40-frame no-speech variant was used to keep the hard repeat gate bounded:
-
 - project: `sha256:d428390738b6c96432e823fefc04f62c240681d932f34ba7270b3cdc1b29a139`
 - media manifest: `sha256:3e6b5f53996021920001c4b67a386e26a69451d3083065650f3fba3cf1262c1e`
 - frame manifest: `sha256:b29ea1f8eed9a548022485b79c04bc81f19ebd3320000b5c87fa8a1e58d13c27`
