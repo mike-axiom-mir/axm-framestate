@@ -1,0 +1,131 @@
+{
+  "schema": "axm.framestate.shot-recipe/v0.1",
+  "id": "axm.recipe.lower-third",
+  "version": "1.0.0",
+  "purpose": "Reusable lower-third message shot",
+  "parameters": {
+    "duration_frames": {
+      "type": "integer",
+      "required": true
+    },
+    "text": {
+      "type": "text",
+      "required": true
+    },
+    "accent": {
+      "type": "color",
+      "default": [
+        70,
+        170,
+        255
+      ]
+    },
+    "center_x": {
+      "type": "integer",
+      "default": 80
+    },
+    "y": {
+      "type": "integer",
+      "default": 65
+    }
+  },
+  "shot_template": {
+    "id": "lower-third",
+    "label": "{{text}}",
+    "duration_frames": {
+      "$param": "duration_frames"
+    },
+    "camera": {
+      "zoom_milli": 1000
+    },
+    "layers": [
+      {
+        "id": "accent",
+        "kind": "rect",
+        "z": 1,
+        "x": {
+          "from": 20,
+          "to": {
+            "$param": "center_x"
+          },
+          "easing": "smoothstep"
+        },
+        "y": {
+          "$param": "y"
+        },
+        "w": {
+          "from": 10,
+          "to": 110,
+          "easing": "smoothstep"
+        },
+        "h": 24,
+        "color": {
+          "$param": "accent"
+        },
+        "fade_in_frames": 2,
+        "fade_out_frames": 2
+      },
+      {
+        "id": "label",
+        "kind": "text",
+        "z": 4,
+        "text": "{{text}}",
+        "scale": 1,
+        "x": {
+          "$param": "center_x"
+        },
+        "y": {
+          "$param": "y"
+        },
+        "color": [
+          255,
+          255,
+          255
+        ],
+        "background_color": [
+          10,
+          12,
+          18
+        ],
+        "padding": 2
+      }
+    ],
+    "captions": [],
+    "audio": []
+  },
+  "fixtures": [
+    {
+      "name": "hello",
+      "values": {
+        "duration_frames": 18,
+        "text": "HELLO FRAMESTATE",
+        "accent": [
+          80,
+          180,
+          255
+        ]
+      }
+    }
+  ],
+  "root_fit": {
+    "truth": {
+      "fit": true,
+      "basis": "Template values and fixture materialization remain inspectable and digest-bound."
+    },
+    "agency": {
+      "fit": true,
+      "basis": "The recipe proposes reusable construction only and cannot install itself or seize edit authority."
+    },
+    "continuity": {
+      "fit": true,
+      "basis": "Adoption uses the existing recovery snapshot boundary and additive recipe library."
+    },
+    "wisdom-before-speed": {
+      "fit": true,
+      "basis": "Detached replay testing precedes live adoption."
+    }
+  },
+  "metadata": {
+    "kind": "lower-third"
+  }
+}
