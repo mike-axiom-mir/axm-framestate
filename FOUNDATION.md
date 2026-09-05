@@ -17,7 +17,7 @@ These roots apply above humans, AI instances and machine subsystems equally. The
 
 1. canonical project truth;
 2. integer/fixed-point temporal sampling;
-3. shot/scene compilation and composition nesting;
+3. creative-brief direction, shot/scene compilation and composition nesting;
 4. media/audio/font conforming boundaries;
 5. 2D composition, masks/chroma, particles and effect organs;
 6. 3D triangle geometry, UV sampling, morphing and shadow projection;
@@ -25,7 +25,7 @@ These roots apply above humans, AI instances and machine subsystems equally. The
 8. captions, subtitles and audio composition;
 9. frame/audio/media/render receipts;
 10. mechanical review, frame analysis and explicit gap exposure;
-11. detached bounded growth;
+11. detached bounded growth for effect organs and data-only shot-recipe organs;
 12. daily whole-body recovery.
 
 These layers may be rearranged or replaced when use produces a better structure that still fits the roots.
@@ -40,4 +40,4 @@ Instead, source bytes, boundary identity and resulting conformed/output bytes ar
 
 Known capability remains reusable. Missing capability becomes a named gap rather than a silent quality downgrade.
 
-Current live self-growth is deliberately bounded to verified effect organs. A working bounded transition does not imply arbitrary code mutation authority.
+Current live self-growth is deliberately bounded to verified effect organs and verified data-only shot-recipe organs. Both require detached replay evidence, explicit positive four-root fit and the daily recovery boundary before additive live adoption. A working bounded transition does not imply arbitrary code mutation, canon, merge or permission authority.
