@@ -32,6 +32,8 @@ CAPABILITIES={
 'nested-compositions':('rendered','FrameState project as visual child with child lineage'),
 'nested-audio':('rendered','child FrameState audio can enter parent mix with lineage'),
 'shot-plan-compiler':('executable','relative shots compile into one canonical project'),
+'creative-brief-compiler':('executable','high-level beats/style/media compile into canonical shot plan and project'),
+'shot-recipe-organs':('executable','detached reusable shot templates can be replay-tested and adopted behind four-root + recovery gate'),
 'shot-manager':('executable','markers derive shot spans'),
 'storyboard-generator':('rendered','representative actual rendered frames + digest lineage'),
 'render-queue':('executable','batch project rendering with queue receipt'),
@@ -40,12 +42,12 @@ CAPABILITIES={
 'repeat-verification':('tested','second full render compares project/media/frame/audio truth'),
 'mechanical-video-review':('executable','bounded framing/audio/camera checks'),
 'daily-recovery':('executable','whole-body snapshot before supported effect adoption'),
-'natural-language-directing':('gap','no neural model required/bundled; structured plans supported'),
+'natural-language-directing':('gap','free-form language still requires an explicit translator; creative briefs and shot plans are native'),
 'arbitrary-self-modification':('gap','growth remains bounded; no arbitrary self-write authority'),
 }
 
 def capability_summary()->dict[str,Any]:
-    return {'schema':'axm.framestate.capability-map/v0.4','capabilities':{k:{'status':v[0],'evidence':v[1]} for k,v in CAPABILITIES.items()}}
+    return {'schema':'axm.framestate.capability-map/v0.5','capabilities':{k:{'status':v[0],'evidence':v[1]} for k,v in CAPABILITIES.items()}}
 
 def analyze_requirements(required:list[str])->dict[str,Any]:
     rows=[];ready=True
