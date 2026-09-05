@@ -26,6 +26,17 @@ Branches and PRs are collaboration hygiene, not FrameState's internal cognition,
 
 FrameState must remain a **standalone machine**. Other AXM repositories may be studied as donor knowledge, but FrameState must not depend on them at runtime or silently link/import their code. Reimplement useful patterns cleanly inside this repository with explicit provenance notes when appropriate.
 
+## Permanent authority roots
+
+The only permanent authority layer is:
+
+- Truth
+- Agency
+- Continuity
+- Wisdom Before Speed
+
+Everything else in the repository is replaceable working machinery.
+
 ## Truth and verification
 
 Do not claim a capability is implemented because a schema or descriptor exists. Distinguish at minimum between described, validated, executable, rendered, tested, deterministically reproduced, and externally provided/black-box capability.
@@ -34,4 +45,4 @@ Failures and missing capabilities stay visible rather than being silently replac
 
 ## Bootstrap note
 
-This repository began empty, so this `AGENTS.md` file was the unavoidable bootstrap commit placed directly on `main` to establish a base ref. All subsequent implementation work follows the one-chat / one-PR-lane rule above.
+This repository began empty, so this `AGENTS.md` file was the one unavoidable bootstrap commit placed directly on `main` to establish a base ref. All subsequent implementation work follows the one-chat / one-PR-lane rule above.
