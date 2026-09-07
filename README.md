@@ -15,7 +15,7 @@ Only four rules sit above the machine:
 
 Everything else is working architecture and may be replaced when better evidence appears.
 
-## v0.6 construction space
+## v0.7 construction space
 
 One canonical project can combine:
 
@@ -75,7 +75,7 @@ PYTHONPATH=src python -m axm_framestate gaps \
   examples/advanced_requirements.json
 ```
 
-Current checkpoint: **21/21 unit tests pass**. The rehearsal capability probe returns READY, and the compact Director rehearsal proof reaches a repeatable final project after evidence-backed audio, caption and text-fit passes.
+Current checkpoint: **26/26 unit tests pass**. The rehearsal and bounded-prompt capability probes return READY. The compact prompt proof compiles versioned prompt direction into explicit native state, rehearses the candidate, and reaches a repeat-verifiable final project.
 
 ## Inspect rather than trust
 
@@ -114,7 +114,7 @@ FrameState separates evidence planes deliberately:
 - internally mixed PCM/WAV is exact for the current runtime;
 - MP4 encoding remains an external FFmpeg boundary, with no false universal bit-identical codec claim;
 - current self-growth is bounded to tested effect organs, not arbitrary self-rewriting;
-- natural-language directing is optional frontier capability, not required for the deterministic body.
+- bounded direct/style prompt language is native and versioned; unrestricted semantic natural-language directing remains an explicit translator/interpretation boundary rather than hidden machine authority.
 
 See `FOUNDATION.md`, `CHANGELOG.md`, `DONOR_NOTES.md` and `VERIFICATION.md` for the current evidence boundary.
 
@@ -129,3 +129,18 @@ PYTHONPATH=src python -m axm_framestate make examples/creative_brief.json render
 Reusable **shot-recipe organs** can also be replay-tested and adopted behind the same four-root + daily-recovery boundary used for live effect growth. They are data-only construction templates, not arbitrary executable code. See `DIRECTOR.md`.
 
 Free-form natural-language directing remains an explicit translator boundary. FrameState does not pretend that a deterministic creative brief compiler is a general language model.
+
+## v0.7 prompts: high-level direction without hidden authority
+
+FrameState can now apply bounded prompt direction to a project before rehearsal:
+
+```bash
+PYTHONPATH=src python -m axm_framestate interpret-prompt \
+  examples/rehearsal_brief_compact.json examples/prompt_cinematic.json
+
+PYTHONPATH=src python -m axm_framestate prompt-make \
+  examples/rehearsal_brief_compact.json examples/prompt_cinematic.json \
+  renders/prompt-cinematic --verify-repeat
+```
+
+The same prompt on the same project produces the same prompt plan and candidate state. Native style words are versioned. Ambiguous terms remain visible and held rather than receiving silent machine meaning. See `PROMPTS.md`.

@@ -64,3 +64,18 @@ FrameState gained a deterministic rehearsal fabric between direction and final o
 - deterministic rehearsal receipts and optional final repeat verification.
 
 A compact creative brief proof reached final output through three accepted passes: audio headroom, caption readability, and text fit, then stopped with `NO_JUSTIFIED_AUTO_DELTA`.
+
+## v0.7 Prompt / Style Interpretation Fabric
+
+FrameState gained a bounded prompt-to-state interface above the Director and rehearsal floors:
+
+- `axm.framestate.prompt/v0.1` normalizes high-level direction;
+- deterministic prompt plans expose recognized tokens, versioned style bundles, native operations, rehearsal hints, ambiguity and unresolved fragments;
+- direct prompt edits cover title size, non-speech audio gain, caption hold time and video playback speed;
+- versioned native style bundles include `cinematic@1`, `cleaner@1`, `documentary@1`, `warmer@1` and `cooler-color@1`;
+- ambiguous semantic words such as `cooler`, `dramatic`, `epic`, `lonely` and `hopeful` are held rather than silently assigned authority;
+- prompt-applied candidates feed into the v0.6 rehearsal loop before final output;
+- prompt receipts preserve interpretation, applied operations, held terms, rehearsal lineage and final project identity;
+- `interpret-prompt`, `prompt-make`, and `explain-prompt-token` expose the layer through the CLI.
+
+The prompt layer does not claim general natural-language understanding or artistic judgment. Prompt effects must become inspectable native state or remain a named interpretation boundary.

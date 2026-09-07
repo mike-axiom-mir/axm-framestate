@@ -69,3 +69,9 @@ v0.6 can place the Director's compiled candidate through the Rehearsal / Iterati
 The Director still chooses/compiles construction vocabulary. Rehearsal then measures the candidate's mechanical consequences, proposes bounded state deltas, re-renders candidates, compares evidence, and keeps only improvements allowed by the explicit policy.
 
 See `REHEARSAL.md`.
+
+## v0.7 prompt surface
+
+The Director can now receive a bounded prompt plan above a canonical project, shot plan, or creative brief. Supported direct/style language is converted into explicit native operations before rehearsal. Versioned bundle meaning is inspectable through `explain-prompt-token`. Free-form emotional or artistic semantics remain a named translator/interpretation boundary rather than hidden Director authority.
+
+See `PROMPTS.md` for the prompt schemas, mappings and ambiguity rules.

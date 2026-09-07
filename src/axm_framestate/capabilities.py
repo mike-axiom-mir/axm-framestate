@@ -43,13 +43,19 @@ CAPABILITIES={
 'mechanical-video-review':('executable','bounded framing/audio/camera checks'),
 'rehearsal-iteration':('tested','candidate render -> mechanical evidence -> bounded delta -> replay -> compare -> accept/hold loop'),
 'deterministic-quality-loop':('tested','quality path can iterate evidence-backed construction before final output without hidden artistic scoring'),
+'bounded-prompt-compiler':('tested','prompt text compiles into explicit native operations with a prompt-plan receipt'),
+'style-prompt-bundles':('tested','versioned cinematic/cleaner/documentary/warm/cool-color bundles map to inspectable state operations'),
+'direct-edit-prompts':('tested','bounded title/audio/caption/footage instructions compile into native state deltas'),
+'prompt-ambiguity-hold':('tested','ambiguous semantic terms remain visible and do not silently mutate project state'),
+'prompt-rehearsal-bridge':('tested','prompt-applied candidate state can enter deterministic rehearsal before final render'),
+'prompt-repeat-verification':('tested','same project + same prompt produces stable plan/candidate state and repeat-verifiable final output'),
 'daily-recovery':('executable','whole-body snapshot before supported live adoption'),
-'natural-language-directing':('gap','free-form language still requires an explicit translator; creative briefs and shot plans are native'),
+'natural-language-directing':('gap','bounded direct/style prompts are native, but unrestricted free-form semantic language still requires an explicit translator/interpretation boundary'),
 'arbitrary-self-modification':('gap','growth remains bounded; no arbitrary self-write authority'),
 }
 
 def capability_summary()->dict[str,Any]:
-    return {'schema':'axm.framestate.capability-map/v0.6','capabilities':{k:{'status':v[0],'evidence':v[1]} for k,v in CAPABILITIES.items()}}
+    return {'schema':'axm.framestate.capability-map/v0.7','capabilities':{k:{'status':v[0],'evidence':v[1]} for k,v in CAPABILITIES.items()}}
 
 def analyze_requirements(required:list[str])->dict[str,Any]:
     rows=[];ready=True

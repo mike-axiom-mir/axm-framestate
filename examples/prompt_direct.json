@@ -1,0 +1,8 @@
+{
+  "schema": "axm.framestate.prompt/v0.1",
+  "id": "direct-edit",
+  "text": "Make the title bigger, lower the music, and keep captions longer.",
+  "allow_classes": ["direct", "style"],
+  "ambiguity_policy": "hold",
+  "scope": "all"
+}

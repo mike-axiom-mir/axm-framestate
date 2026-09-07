@@ -42,3 +42,7 @@ Instead, source bytes, boundary identity and resulting conformed/output bytes ar
 Known capability remains reusable. Missing capability becomes a named gap rather than a silent quality downgrade.
 
 Current live self-growth is deliberately bounded to verified effect organs and verified data-only shot-recipe organs. Both require detached replay evidence, explicit positive four-root fit and the daily recovery boundary before additive live adoption. A working bounded transition does not imply arbitrary code mutation, canon, merge or permission authority.
+
+## Prompt influence
+
+Prompt language may guide change, but it does not become project truth merely because it was written by a human or AI. Native v0.7 prompt influence must compile into explicit versioned tokens, state operations and receipts before it can modify the project. Ambiguous semantic meaning remains held or external. Prompt-applied candidates then remain subject to the same rehearsal and evidence boundaries as other candidate state.

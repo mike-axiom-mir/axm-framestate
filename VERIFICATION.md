@@ -1,37 +1,54 @@
-# FrameState v0.6 verification
+# FrameState v0.7 verification
 
-Hard verification after the Rehearsal / Iteration Fabric expansion:
+Hard verification for the Prompt / Style Interpretation Fabric checkpoint:
 
-- `PYTHONPATH=src python -m unittest discover -s tests -v` -> **21/21 PASS**
-- all previous v0.5 construction/Director/recipe gates remain green -> **PASS**
-- rehearsal requirements probe -> **READY**
-- deterministic rehearsal repairs deliberately injected audio/caption/fade/text-fit quality debt -> **PASS**
-- clean-project rehearsal stops without rewriting canonical state -> **PASS**
-- two independent tiny rehearsal runs reach the same final project and same rehearsal receipt -> **PASS**
-- final rehearsed Director proof repeat verification -> **PASS**
+- `PYTHONPATH=src python -m unittest discover -s tests -v` -> **26/26 PASS**
+- all v0.6 construction, Director, recipe and rehearsal tests remain green;
+- same project + same prompt -> same prompt-plan digest and same candidate-project digest -> **PASS**;
+- ambiguous `cooler` / `dramatic` prompt -> visible held ambiguity with no construction-state mutation -> **PASS**;
+- direct prompt edits modify canonical title/audio/caption state -> **PASS**;
+- bounded prompt capability probe -> **READY**;
+- prompt-applied candidate -> rehearsal -> final repeat verification -> **PASS**.
 
-## Rehearsed Director proof
+## Prompt proof
 
-Input: `examples/rehearsal_brief_compact.json`
+Input creation brief: `examples/rehearsal_brief_compact.json`
 
-The high-level brief compiles to a 72-frame candidate, then rehearsal performs:
+Prompt: `examples/prompt_cinematic.json`
 
-1. **AUDIO_HEADROOM**: declared gain `2200 -> 915`; measured pre-clip peak `72088 -> 29982`; clipped sample values `201480 -> 0`.
-2. **CAPTION_READABILITY**: reading load `4500 -> 3483` milli-words/second.
-3. **TEXT_FIT**: aggregate horizontal overflow `500 -> 0` pixels through deterministic line wrapping with unchanged words.
-4. Stop: `NO_JUSTIFIED_AUTO_DELTA`.
+Recognized native tokens:
 
-Final output:
+- `cinematic` -> `builtin:prompt-style.cinematic@1`
+- `cleaner` -> `builtin:prompt-style.cleaner@1`
+- `more-readable` -> rehearsal hints only
 
-- duration: **72 frames / 6 seconds**
-- output: **160x90 H.264 + AAC MP4**
-- final project: `sha256:13e471271ab209fed2c98ee044ac2baab1fb312196e014b1979058787d5bb218`
-- MP4: `sha256:8e0e0e1595f914bd9ffba074a93d52c06b18baada426343d419620b07b3570a0`
-- final repeat verification: `sha256:8885db44b15375c7bdb6a758b708107962a510b7e4732842247ea042180c4838`
-- rehearsal receipt: `sha256:9d305bb6a02fad3ba84a8a796a9121b42fdf435e86a5123390eeff62dd0ecb64`
+Native prompt operations:
+
+- particle count factor `700/1000`;
+- non-speech audio factor `900/1000`;
+- visual fade minimum `3` frames where bounded by active span;
+- camera interpolation -> smoothstep.
+
+Prompt plan: `sha256:fa20418fac5910f9469d27d70f6f2d8cea769b426735c2cf3d429af276440233`
+
+Candidate project: `sha256:151ef23949d38da84bb0f2adc516e8411dc3ebe1c1e230a27ba8574300bc673c`
+
+Rehearsal then accepted three evidence-backed repairs and stopped at `NO_JUSTIFIED_AUTO_DELTA`:
+
+1. audio headroom;
+2. caption readability;
+3. text fit.
+
+Final project: `sha256:ad58fef0d9b6877809af1db96379be1da73bd04cc16572d711ecdf63dd4029f9`
+
+Final MP4: `sha256:95daf1ba4c9f51b8b2d72a4a7c829fb410f0db220224deb189409d3829f694db`
+
+Prompt receipt: `sha256:7242380e9069e9bea464c86c8401f58971de4bc436feb4f98e0998c72bc4d7e1`
+
+Rehearsal receipt: `sha256:e89a85cda2d6a592dde2a96c64b5a8240d95126cf101e94b54ba7663969287d3`
+
+Final repeat verification: `sha256:06da3fc062a6e3dcb59a4f556f30916c24f1766aecd07689c7b1e515b561feaf`
 
 ## Truth boundary
 
-This proves deterministic **mechanical iteration**, not a universal quality function. Rehearsal currently knows how to reason about measurable construction relationships such as clipping/headroom, text raster fit, caption timing and fade lifetime. Story, emotion, originality, visual taste and meaning remain interpretation surfaces rather than hidden scalar rewards.
-
-External FFmpeg/eSpeak/font behavior remains named and receipted. The four permanent roots remain Truth, Agency, Continuity, and Wisdom Before Speed.
+This proves deterministic bounded prompt interpretation and prompt-to-state replay. It does not prove that words such as `cinematic`, `dramatic`, `lonely`, or `epic` have one universal artistic meaning. Native style words are versioned machine vocabulary; unresolved semantic interpretation remains visible or external.
