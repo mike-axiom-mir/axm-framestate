@@ -3,17 +3,38 @@ from __future__ import annotations
 import json
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 
-def run_json(exe: Path, *args: str) -> dict:
-    proc = subprocess.run([str(exe), *args], capture_output=True, text=True, check=False, timeout=120)
+def run_json(exe: Path, *args: str, timeout: int = 120) -> dict:
+    proc = subprocess.run([str(exe), *args], capture_output=True, text=True, check=False, timeout=timeout)
     if proc.returncode != 0:
         raise SystemExit(f"portable command failed ({proc.returncode}): {' '.join(args)}\nSTDOUT:\n{proc.stdout}\nSTDERR:\n{proc.stderr}")
     try:
         return json.loads(proc.stdout)
     except json.JSONDecodeError as exc:
         raise SystemExit(f"portable command did not emit JSON: {' '.join(args)}\n{proc.stdout}\n{proc.stderr}") from exc
+
+
+def tiny_project() -> dict:
+    return {
+        "schema": "axm.framestate.project/v0.5",
+        "id": "portable-parallel-proof",
+        "title": "Portable parallel proof",
+        "canvas": {"width": 48, "height": 32, "fps": 12},
+        "duration_frames": 4,
+        "background": [4, 6, 10],
+        "camera": {"x": 0, "y": 0, "zoom_milli": 1000},
+        "media": [],
+        "layers": [{
+            "id": "box", "kind": "rect", "z": 1,
+            "x": {"from": 12, "to": 36}, "y": 16,
+            "w": 12, "h": 8, "color": [220, 100, 60],
+            "start_frame": 0, "end_frame": 4,
+        }],
+        "captions": [], "audio": [], "effects": [], "markers": [], "metadata": {},
+    }
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -25,10 +46,12 @@ def main(argv: list[str] | None = None) -> int:
         raise SystemExit(f"portable executable missing: {exe}")
 
     doctor = run_json(exe, "doctor")
-    assert doctor["schema"] == "axm.framestate.portable-doctor/v0.1", doctor
+    assert doctor["schema"] == "axm.framestate.portable-doctor/v0.2", doctor
     assert doctor["frozen_executable"] is True, doctor
     assert set(doctor["studio_resources"]) == {"index.html", "style.css", "app.js"}, doctor
     assert all(str(v).startswith("sha256:") for v in doctor["studio_resources"].values()), doctor
+    assert doctor["owned_core_paths"]["native_png"] == "tested", doctor
+    assert doctor["owned_core_paths"]["native_wav"] == "tested", doctor
 
     capabilities = run_json(exe, "cli", "capabilities")
     assert capabilities["schema"].startswith("axm.framestate.capability-map/"), capabilities
@@ -37,9 +60,24 @@ def main(argv: list[str] | None = None) -> int:
     help_proc = subprocess.run([str(exe), "--help"], capture_output=True, text=True, check=False, timeout=30)
     assert help_proc.returncode == 0, help_proc.stderr
     assert "FrameState portable application" in help_proc.stdout, help_proc.stdout
+    assert "FrameState parallel" in help_proc.stdout, help_proc.stdout
+
+    with tempfile.TemporaryDirectory() as td:
+        root = Path(td)
+        project = root / "parallel-proof.json"
+        output = root / "render"
+        project.write_text(json.dumps(tiny_project(), sort_keys=True) + "\n", encoding="utf-8")
+        parallel = run_json(exe, "parallel", str(project), str(output), "--workers", "2", "--no-assemble", timeout=180)
+        assert parallel["schema"] == "axm.framestate.parallel-render-receipt/v0.1", parallel
+        assert parallel["parallel_execution"]["backend"] == "cpu-parallel", parallel
+        assert parallel["parallel_execution"]["worker_count"] == 2, parallel
+        assert parallel["parallel_execution"]["frame_manifest_digest"] == parallel["frame_manifest_digest"], parallel
+        assert (output / "frame-manifest.json").is_file(), parallel
+        assert (output / "parallel-execution.json").is_file(), parallel
 
     print(json.dumps({
         "portable_smoke": "PASS",
+        "parallel_smoke": "PASS",
         "executable": exe.name,
         "platform_family": doctor["platform_family"],
         "version": doctor["version"],
