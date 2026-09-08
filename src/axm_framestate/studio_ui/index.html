@@ -32,6 +32,15 @@
       </section>
 
       <section>
+        <div class="section-title"><span>Assets</span><span class="pill">project-local</span></div>
+        <label>Type<select id="assetKind"><option value="image">Image</option><option value="video">Video</option><option value="audio">Audio</option><option value="mesh">OBJ Mesh</option><option value="font">Font</option><option value="framestate">FrameState project</option></select></label>
+        <label>File<input id="assetFile" type="file"></label>
+        <div class="add-row"><button id="importAssetBtn" class="primary">Import asset</button><span id="assetLimit" class="muted"></span></div>
+        <div class="muted">Copied into <code>assets/</code>, SHA-bound, no arbitrary path access.</div>
+        <div id="mediaList" class="object-list compact"></div>
+      </section>
+
+      <section>
         <div class="section-title"><span>Layers</span><button class="mini" id="duplicateBtn">Duplicate</button></div>
         <div class="add-row">
           <button data-add-layer="rect">+ Rect</button><button data-add-layer="circle">+ Circle</button><button data-add-layer="text">+ Text</button>
