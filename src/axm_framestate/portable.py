@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import importlib.util
 import json
+import multiprocessing
 import shutil
 import sys
 from importlib import resources
@@ -21,17 +22,18 @@ def portable_doctor() -> dict[str, Any]:
     resource_digests = {name: _resource_digest(name) for name in ("index.html", "style.css", "app.js")}
     capabilities = capability_summary()["capabilities"]
     return {
-        "schema": "axm.framestate.portable-doctor/v0.1",
+        "schema": "axm.framestate.portable-doctor/v0.2",
         "version": __version__,
         "frozen_executable": bool(getattr(sys, "frozen", False)),
         "platform_family": sys.platform,
         "studio_resources": resource_digests,
         "owned_core_paths": {
             "canonical_project_state": capabilities["canonical-project-state"]["status"],
-            "native_png": capabilities.get("native-png-image-path", {}).get("status", "unknown"),
-            "native_wav": capabilities.get("native-wav-audio-path", {}).get("status", "unknown"),
+            "native_png": capabilities.get("native-png-import", {}).get("status", "unknown"),
+            "native_wav": capabilities.get("native-wav-import", {}).get("status", "unknown"),
             "native_speech": capabilities["native-speech-synthesis"]["status"],
             "cpu_renderer": capabilities["2d-procedural-shapes"]["status"],
+            "parallel_frames": capabilities.get("parallel-frame-render-backend", {}).get("status", "unpromoted"),
         },
         "optional_compatibility_tools": {
             "ffmpeg": bool(shutil.which("ffmpeg")),
@@ -51,12 +53,15 @@ Usage:
   FrameState open [project]       Alias for studio
   FrameState cli <args...>        Run the canonical framestate CLI
   FrameState resume <args...>     Run crash-resumable rendering
+  FrameState parallel <args...>   Run deterministic multi-process full-movie rendering
   FrameState doctor               Inspect this portable application's owned/optional boundaries
   FrameState --help               Show this help
 """
 
 
 def main(argv: list[str] | None = None) -> int:
+    # Required by frozen Windows executables before any ProcessPool child can re-enter safely.
+    multiprocessing.freeze_support()
     args = list(sys.argv[1:] if argv is None else argv)
     if not args:
         from .studio import main as studio_main
@@ -74,6 +79,9 @@ def main(argv: list[str] | None = None) -> int:
     if command == "resume":
         from .resumable import main as resume_main
         return resume_main(rest)
+    if command == "parallel":
+        from .parallel_movie import main as parallel_main
+        return parallel_main(rest)
     if command == "doctor":
         print(json.dumps(portable_doctor(), indent=2, sort_keys=True, ensure_ascii=False))
         return 0
