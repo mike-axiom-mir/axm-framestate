@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>FrameState Studio</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><span class="mark">FS</span><div><strong>FrameState Studio</strong><small id="digest">loading…</small></div></div>
+    <div class="toolbar">
+      <select id="realizationMode" title="Preview realization"><option value="exact">Exact</option><option value="adaptive">Adaptive</option></select>
+      <button id="reviewBtn">Review</button>
+      <button id="saveBtn">Save</button>
+      <button id="renderBtn" class="primary">Render Final</button>
+    </div>
+  </header>
+
+  <main class="workspace">
+    <aside class="left panel">
+      <section>
+        <div class="section-title"><span>Project</span><span id="dirtyFlag" class="pill">clean</span></div>
+        <label>Title<input id="projectTitle" type="text"></label>
+        <div class="grid3">
+          <label>W<input id="canvasW" type="number" min="16" max="4096"></label>
+          <label>H<input id="canvasH" type="number" min="16" max="4096"></label>
+          <label>FPS<input id="fps" type="number" min="1" max="120"></label>
+        </div>
+        <label>Frames<input id="duration" type="number" min="1"></label>
+        <label>Background<input id="background" type="text" placeholder="10,12,18"></label>
+      </section>
+
+      <section>
+        <div class="section-title"><span>Layers</span><button class="mini" id="duplicateBtn">Duplicate</button></div>
+        <div class="add-row">
+          <button data-add-layer="rect">+ Rect</button><button data-add-layer="circle">+ Circle</button><button data-add-layer="text">+ Text</button>
+          <button data-add-layer="particles">+ Particles</button><button data-add-layer="cube3d">+ Cube 3D</button>
+        </div>
+        <div id="layerList" class="object-list"></div>
+      </section>
+
+      <section>
+        <div class="section-title"><span>Captions</span><button class="mini" id="addCaptionBtn">+ Caption</button></div>
+        <div id="captionList" class="object-list compact"></div>
+      </section>
+
+      <section>
+        <div class="section-title"><span>Audio</span><span class="add-inline"><button class="mini" id="addToneBtn">+ Tone</button><button class="mini" id="addSpeechBtn">+ Speech</button></span></div>
+        <div id="audioList" class="object-list compact"></div>
+      </section>
+
+      <section>
+        <div class="section-title"><span>Effects</span></div>
+        <label class="check"><input type="checkbox" data-effect="builtin:grayscale@1"> Grayscale</label>
+        <label class="check"><input type="checkbox" data-effect="builtin:scanline@1"> Scanline</label>
+      </section>
+    </aside>
+
+    <section class="center">
+      <div class="preview-shell panel">
+        <div class="preview-toolbar">
+          <button id="playBtn" class="icon">▶</button>
+          <span id="frameLabel">Frame 0</span>
+          <span id="previewStatus" class="muted">actual renderer preview</span>
+        </div>
+        <div class="preview-stage"><img id="preview" alt="FrameState rendered preview"></div>
+        <div class="scrub-row"><input id="scrubber" type="range" min="0" max="0" value="0"></div>
+      </div>
+
+      <div class="timeline panel">
+        <div class="section-title"><span>Timeline</span><span class="muted">canonical timing</span></div>
+        <div id="timelineRows"></div>
+      </div>
+
+      <div class="prompt panel">
+        <div class="section-title"><span>Direction</span><span class="muted">bounded prompt → explicit state operations</span></div>
+        <div class="prompt-row"><input id="promptText" type="text" placeholder="cinematic + cleaner + more readable"><button id="promptBtn">Apply</button></div>
+        <pre id="promptResult" class="receipt small"></pre>
+      </div>
+
+      <details class="source panel">
+        <summary>Canonical JSON</summary>
+        <textarea id="jsonEditor" spellcheck="false"></textarea>
+        <div class="source-actions"><button id="refreshJsonBtn">Refresh from state</button><button id="applyJsonBtn">Apply JSON</button></div>
+      </details>
+    </section>
+
+    <aside class="right panel">
+      <div class="section-title"><span>Inspector</span><button id="deleteBtn" class="mini danger">Delete</button></div>
+      <div id="selectionTitle" class="selection-title">Nothing selected</div>
+      <div id="inspector"></div>
+      <div class="section-title gap-top"><span>Evidence / Output</span></div>
+      <pre id="evidence" class="receipt">Studio ready.</pre>
+    </aside>
+  </main>
+
+  <div id="toast" role="status" aria-live="polite"></div>
+  <script src="/app.js"></script>
+</body>
+</html>
