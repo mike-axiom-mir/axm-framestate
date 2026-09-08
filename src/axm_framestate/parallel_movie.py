@@ -1,12 +1,13 @@
 from __future__ import annotations
 
+import argparse
 import json
 import platform
 from pathlib import Path
 from typing import Any
 
 from .audio import render_audio
-from .canonical import canonical_json, digest
+from .canonical import canonical_json, digest, load_project
 from .captions import export_vtt
 from .parallel_render import render_project_parallel
 from .receipts import _assemble_video, _stable_receipt_digest
@@ -52,3 +53,27 @@ def render_parallel_with_receipt(
     receipt["receipt_digest"] = _stable_receipt_digest(receipt)
     (out / "parallel-render-receipt.json").write_bytes(canonical_json(receipt) + b"\n")
     return receipt
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(prog="framestate-render-parallel", description="Render canonical FrameState frames through the deterministic multi-process backend")
+    parser.add_argument("project")
+    parser.add_argument("output")
+    parser.add_argument("--workers", type=int, default=None)
+    parser.add_argument("--profile", choices=["fast", "h264", "quality"], default="h264")
+    parser.add_argument("--no-assemble", action="store_true")
+    args = parser.parse_args(argv)
+    receipt = render_parallel_with_receipt(
+        load_project(Path(args.project)),
+        Path(args.output),
+        Path.cwd().resolve(),
+        assemble=not args.no_assemble,
+        profile=args.profile,
+        max_workers=args.workers,
+    )
+    print(json.dumps(receipt, indent=2, sort_keys=True, ensure_ascii=False))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
