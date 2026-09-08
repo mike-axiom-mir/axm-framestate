@@ -5,6 +5,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from axm_framestate.canonical import normalize_project
 from axm_framestate.realization import plan_realization
 from axm_framestate.render import render_project
 from axm_framestate.resumable import ResumeError, compare_resumable_to_reference, render_frames_resumable
@@ -19,7 +20,7 @@ def small_project():
     p["captions"] = []
     p["audio"] = []
     p["effects"] = []
-    return p
+    return normalize_project(p)
 
 
 class ResumableRenderTests(unittest.TestCase):
