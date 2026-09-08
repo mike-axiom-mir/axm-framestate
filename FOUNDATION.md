@@ -27,7 +27,8 @@ These roots apply above humans, AI instances and machine subsystems equally. The
 10. mechanical review, frame analysis and explicit gap exposure;
 11. deterministic rehearsal / iteration with evidence-backed bounded deltas before final output;
 12. detached bounded growth for effect organs and data-only shot-recipe organs;
-13. daily whole-body recovery.
+13. machine capability probe + user realization policy + deterministic adaptive render contracts;
+14. daily whole-body recovery.
 
 These layers may be rearranged or replaced when use produces a better structure that still fits the roots.
 
@@ -50,3 +51,14 @@ Prompt language may guide change, but it does not become project truth merely be
 ## Native speech boundary
 
 New v0.5 project speech defaults to FrameState native synthesis. Historical v0.4-and-earlier speech with no declared engine preserves the old eSpeak interpretation during migration. Native speech exposes pronunciation/phoneme state and exact PCM lineage; eSpeak remains an optional named external boundary.
+
+
+## Canonical state and adaptive realization
+
+Canonical state answers **what the project is**. A realization contract answers **how this machine is allowed to express it now**. Those layers must not be silently collapsed.
+
+The v0.9 contract binds the canonical project digest, bounded machine capability state and explicit user policy. It may reduce only named expression work that FrameState actually owns. The current floor can reduce seeded particle density, omit deterministic 3D shadow work, optionally cap effect passes when the user explicitly permits it, and choose an FFmpeg compatibility export profile. It may not rewrite project timing, layer identity, captions, audio events, markers or other canonical content to satisfy a weak machine.
+
+Machine probing is capability evidence, not person profiling. v0.9 does not collect user identity, serial/device identifiers, network identifiers or claim GPU APIs that FrameState cannot execute. Unknown capability facts degrade conservatively.
+
+**Working rule:** capability may change expression. It may not silently change truth.

@@ -1,50 +1,58 @@
-# FrameState v0.8 verification
+# FrameState v0.9 verification
 
-Hard verification for the Native Deterministic Speech Organ checkpoint:
+Hard verification for the Adaptive Realization Fabric checkpoint:
 
-- existing v0.7 machine/prompt/rehearsal regression groups remain green;
+- existing machine regression group -> **17/17 PASS**;
+- prompt group -> **5/5 PASS**;
+- rehearsal group -> **4/4 PASS**;
 - native-speech group -> **5/5 PASS**;
-- aggregate current checkpoint -> **31/31 PASS across four test groups**;
-- native-speech capability probe -> **READY**;
-- same text + voice + rate -> same PCM + speech receipt -> **PASS**;
-- native timeline speech while eSpeak/FFmpeg discovery is mocked unavailable -> **PASS**;
-- legacy v0.4 speech without engine -> `espeak`, new v0.5 speech without engine -> `native` -> **PASS**;
-- creative-brief narration defaults to native engine -> **PASS**.
+- adaptive-realization group -> **9/9 PASS**;
+- aggregate checkpoint -> **40/40 PASS across five test groups**.
 
-## Native standalone speech proof
+## Adaptive realization evidence
 
-Text:
+Input: `examples/adaptive_realization.json`
 
-`FrameState speaks with its own deterministic voice.`
+Low fixture:
 
-Voice profile: `native-neutral-1`
+- 2 logical cores;
+- 2048 MB memory;
+- CPU-software fallback backend;
+- adaptive tier -> `minimum`;
+- reduced particle expression;
+- deterministic 3D shadow pass disabled;
+- effect passes remain intact under the default policy.
 
-- sample rate: **48000 Hz**
-- channels: **1**
-- native duration: **162240 samples / 3.38 seconds**
-- external dependencies: **[]**
-- raw native speech PCM: `sha256:f9b926c2afe8825db0b9e554e11fd79558304bb5a391b7a1650fef9de6e05c76`
-- standalone WAV: `sha256:5740e370f4643ae1b826e394196c149bc77f036ac1d116892106fd918ec38039`
-- native speech receipt: `sha256:99ec2e14db8a61503dea7c00e2cadc50a309729e149c0fd6793f2900e1d3e244`
+High fixture:
 
-## Native speech movie proof
+- 12 logical cores;
+- 32768 MB memory;
+- CPU-software backend;
+- adaptive tier -> `high`;
+- full particle expression;
+- deterministic 3D shadow pass enabled.
 
-Input: `examples/native_speech.json`
+Verified properties:
 
-The FrameState core render (frames + native PCM/WAV, no MP4 assembly) records:
+- low and high contracts bind to the **same canonical project digest**;
+- low and high rendered frame manifests differ, as expected for different expression levels;
+- canonical audio PCM is identical across low/high realization;
+- canonical invariants pass before and after both renders;
+- every automatic reduction is exposed as a receipt delta;
+- effect-pass reduction happens only when the user explicitly enables it;
+- user policy can forbid particle/shadow degradation even on a minimum-tier fixture;
+- unknown memory does not silently promote a machine;
+- exact mode reproduces legacy renderer pixel digests;
+- same canonical project + same machine capability state + same policy repeats to the same realization contract, native frames and PCM.
 
-- canonical project: `sha256:5d693698ed4ed598cde2133776d813aee841d8b29c4d6d42828d3cf9760211e4`
-- mixed audio PCM: `sha256:2c8d40f9e0596203bf13e570c66470f68ba906113d84d2c42204022bc82e860d`
-- speech engine: `native`
-- speech external dependencies: `[]`
+## Capability-probe privacy boundary
 
-The same project was also exported through the existing explicit FFmpeg compatibility boundary:
+The v0.9 host probe reads bounded execution facts only. It does not collect user identity, usernames, home paths, network identifiers, serial/device IDs or claim unimplemented GPU backends.
 
-- duration: **48 frames / 4 seconds**
-- output: **160x90 H.264 + 48 kHz mono AAC MP4**
-- MP4: `sha256:af1a06b2054adcb067efeb8a5179d8aa8456e526a056f0fa11d150416f2be991`
-- native project repeat verification: `sha256:07199e0bcce6071a48d28052a6666fc1c0960b542a615f4e3ac4bcceaa1067cc`
+## Native speech truth correction
+
+The v0.8 deterministic speech path remains mechanically verified, but human listening feedback reported that its proof sample was not intelligible as recognizable words. Therefore `human-intelligible-native-speech` is a named gap. The current speech organ proves owned deterministic speech-state/waveform generation, not usable natural TTS.
 
 ## Truth boundary
 
-This proves a native deterministic first-generation speech path, not human-quality speech, arbitrary language understanding, voice cloning, or a neural TTS model. Pronunciation coverage is currently bounded by an inspectable lexicon and deterministic spelling rules. eSpeak remains optional and explicit. MP4/H.264 export still uses FFmpeg; native speech itself does not.
+v0.9 proves deterministic adaptive planning and bounded CPU-software realization, not Metal/Vulkan/WebGPU execution, semantic scene simplification, cross-device pixel identity or adaptive canonical truth. MP4/H.264 remains an FFmpeg compatibility boundary. Different realization tiers may produce different pixels while preserving the same canonical project state.

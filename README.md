@@ -15,7 +15,7 @@ Only four rules sit above the machine:
 
 Everything else is working architecture and may be replaced when better evidence appears.
 
-## v0.8 construction space
+## v0.9 construction space
 
 One canonical project can combine:
 
@@ -75,7 +75,7 @@ PYTHONPATH=src python -m axm_framestate gaps \
   examples/advanced_requirements.json
 ```
 
-Current checkpoint: **31/31 unit tests pass across the four regression groups**. Rehearsal, bounded-prompt and native-speech capability probes return READY. Native speech produces exact PCM with no speech-engine/FFmpeg dependency, while standard MP4 export remains an explicit FFmpeg boundary.
+Current checkpoint: **40/40 unit tests pass across five regression groups**: machine 17, prompt 5, rehearsal 4, native speech 5, adaptive realization 9. Rehearsal, bounded-prompt, native-speech and adaptive-realization capability probes return READY. Native speech produces exact PCM with no speech-engine/FFmpeg dependency, while standard MP4 export remains an explicit FFmpeg boundary. Human listening feedback also established an important truth gap: the v0.8 native voice proof was not intelligible as words to the listener, so human-intelligible native speech remains explicitly unsolved.
 
 ## Inspect rather than trust
 
@@ -157,3 +157,28 @@ PYTHONPATH=src python -m axm_framestate speak-native \
 ```
 
 The native route uses inspectable pronunciation/phoneme state and emits exact 48 kHz PCM/WAV without eSpeak, FFmpeg, a model, internet, or downloaded voice. Historical v0.4 speech without an engine preserves its prior eSpeak meaning; explicit eSpeak remains optional. See `SPEECH.md`.
+
+
+## v0.9 adaptive realization: same truth, different fullness
+
+FrameState can now separate canonical project truth from the machine-specific way that truth is rendered.
+
+```bash
+PYTHONPATH=src python -m axm_framestate probe-machine
+
+PYTHONPATH=src python -m axm_framestate plan-realization \
+  examples/adaptive_realization.json \
+  --machine examples/machine_low.json \
+  --policy examples/realization_policy.json
+
+PYTHONPATH=src python -m axm_framestate render-adaptive \
+  examples/adaptive_realization.json renders/adaptive-low \
+  --machine examples/machine_low.json \
+  --policy examples/realization_policy.json --no-assemble --verify-repeat
+```
+
+The v0.9 planner consumes **canonical project + bounded machine capability state + explicit user policy** and emits a deterministic render contract. Current adaptive knobs are deliberately narrow and executable: particle density, deterministic 3D shadow work, optional effect-pass budget, and FFmpeg compatibility export profile. The canonical project is not rewritten. Every reduction becomes a visible expression delta in the receipt.
+
+`exact` mode preserves the full CPU-software realization and is regression-tested to reproduce the legacy renderer's pixel digests. Unknown capability facts are handled conservatively rather than silently promoting quality. The machine probe records only bounded execution facts and deliberately avoids user/device identifiers or network fingerprinting.
+
+This is the first implementation of the rule: **degrade expression, never truth; upgrade expression, never invent truth.** See `REALIZATION.md`.

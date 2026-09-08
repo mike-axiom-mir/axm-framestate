@@ -89,13 +89,14 @@ def _source_index(layer:dict[str,Any],frame:int,count:int)->int:
     if layer.get('loop'): return idx%count
     return max(0,min(count-1,idx))
 
-def _draw_particles(pix,w,h,layer,frame,cx,cy,alpha,mode):
-    count=layer['count']; seed=layer['seed']; age=max(0,frame-layer['start_frame']); color=layer['color']; size=layer['size']
+def _draw_particles(pix,w,h,layer,frame,cx,cy,alpha,mode,particle_density_milli:int=1000):
+    requested=layer['count']; density=max(1,min(1000,int(particle_density_milli))); count=max(1,min(requested,requested*density//1000)); seed=layer['seed']; age=max(0,frame-layer['start_frame']); color=layer['color']; size=layer['size']
     for i in range(count):
         # stable per-particle pseudo-random values
         hsh=hashlib.sha256(f'{seed}:{i}'.encode()).digest(); rx=int.from_bytes(hsh[:4],'big'); ry=int.from_bytes(hsh[4:8],'big')
         px=cx+(rx%(layer['spread_x']*2+1)-layer['spread_x']); py=cy+(ry%(layer['spread_y']*2+1)-layer['spread_y'])-age*layer['speed']
         _draw_rect(pix,w,h,px,py,size,size,color,alpha,mode)
+    return count
 
 def _triangle(pix,zbuf,w,h,pts,cols,alpha,mode,texture=None,uvs=None):
     (x0,y0,z0),(x1,y1,z1),(x2,y2,z2)=pts
@@ -120,7 +121,7 @@ def _triangle(pix,zbuf,w,h,pts,cols,alpha,mode,texture=None,uvs=None):
             pix[idx]=blend(pix[idx],src,alpha,mode); drawn+=1
     return drawn
 
-def _render_mesh(pix,w,h,layer,frame,cx,cy,zoom,cache,mesh):
+def _render_mesh(pix,w,h,layer,frame,cx,cy,zoom,cache,mesh,shadows_enabled:bool=True):
     s=layer['start_frame'];e=layer['end_frame']; depth=sample(layer['depth'],frame,s,e); size=sample(layer['size'],frame,s,e)*zoom//1000; rx=sample(layer['rot_x_mdeg'],frame,s,e);ry=sample(layer['rot_y_mdeg'],frame,s,e);rz=sample(layer['rot_z_mdeg'],frame,s,e)
     lx=sample(layer['x'],frame,s,e);ly=sample(layer['y'],frame,s,e); sx=_camera(lx,cx,zoom,w//2)-w//2; sy=_camera(ly,cy,zoom,h//2)-h//2
     verts=mesh['vertices']
@@ -143,7 +144,7 @@ def _render_mesh(pix,w,h,layer,frame,cx,cy,zoom,cache,mesh):
         triangles+=_triangle(pix,zbuf,w,h,pts,col,_fade(layer,frame,sample(layer['opacity_milli'],frame,s,e)),layer['blend_mode'],tex,uv)>0
     # simple screen-space cast shadow projection
     shadow_tris=0
-    if layer.get('shadow'):
+    if layer.get('shadow') and shadows_enabled:
         sp=[(x+30,y+20,z+1000) for x,y,z in proj]; zb=[10**12]*(w*h)
         for face in mesh['faces']:
             pts=[sp[r[0]] for r in face]; shadow_tris+=_triangle(pix,zb,w,h,pts,(8,8,12),250,'multiply')>0
@@ -159,8 +160,9 @@ def _bone_pose(layer,frame):
         ss,cc=sincos_mdeg(angle); ex=bx+length*cc//CORDIC_SCALE; ey=by+length*ss//CORDIC_SCALE; poses[bid]={'x':bx,'y':by,'end_x':ex,'end_y':ey,'angle':angle}
     return poses
 
-def render_frame(project:dict[str,Any],frame:int,library:dict[str,EffectOrgan],cache:MediaCache)->tuple[bytes,dict[str,Any]]:
+def render_frame(project:dict[str,Any],frame:int,library:dict[str,EffectOrgan],cache:MediaCache,realization:dict[str,Any]|None=None)->tuple[bytes,dict[str,Any]]:
     w=project['canvas']['width']; h=project['canvas']['height']; bg=tuple(project['background']); pix=[bg]*(w*h)
+    ropts=(realization or {}).get('render',{}); particle_density=int(ropts.get('particle_density_milli',1000)); shadows_enabled=bool(ropts.get('shadows_enabled',True)); effect_limit=ropts.get('effect_pass_limit')
     cam=project['camera']; cx=sample(cam['x'],frame,0,project['duration_frames']);cy=sample(cam['y'],frame,0,project['duration_frames']);zoom=sample(cam['zoom_milli'],frame,0,project['duration_frames'])
     visible=[]
     for layer in project['layers']:
@@ -178,9 +180,11 @@ def render_frame(project:dict[str,Any],frame:int,library:dict[str,EffectOrgan],c
             rgba=_rgba_from_rgb(sw,sh,body); dw=max(1,sample(layer['w'],frame,s,e)*zoom//1000);dh=max(1,sample(layer['h'],frame,s,e)*zoom//1000);mask=None
             if layer.get('mask_media_id'): mask=cache.image_frame(layer['mask_media_id'],0)
             _composite_rgba(pix,w,h,rgba,sw,sh,sx,sy,dw,dh,sample(layer['rotation_mdeg'],frame,s,e),alpha,mode,sample(layer.get('wipe_milli',1000),frame,s,e),layer.get('chroma_key'),layer.get('chroma_tolerance',0),mask);rec.update(source_frame=idx,w=dw,h=dh,mask_media_id=layer.get('mask_media_id'),chroma_key=layer.get('chroma_key'))
-        elif kind=='particles': _draw_particles(pix,w,h,layer,frame,sx,sy,alpha,mode);rec['particle_count']=layer['count']
+        elif kind=='particles':
+            realized_count=_draw_particles(pix,w,h,layer,frame,sx,sy,alpha,mode,particle_density);rec.update(particle_count=realized_count,canonical_particle_count=layer['count'],particle_density_milli=particle_density)
         elif kind in {'cube3d','mesh3d','skinned_mesh3d'}:
-            mesh=cube_mesh() if kind=='cube3d' else cache.mesh(layer['media_id']); rec.update(_render_mesh(pix,w,h,layer,frame,cx,cy,zoom,cache,mesh))
+            mesh=cube_mesh() if kind=='cube3d' else cache.mesh(layer['media_id']); rec.update(_render_mesh(pix,w,h,layer,frame,cx,cy,zoom,cache,mesh,shadows_enabled))
+            rec['canonical_shadow_requested']=bool(layer.get('shadow'));rec['realized_shadow_enabled']=bool(layer.get('shadow') and shadows_enabled)
         elif kind=='rig2d':
             poses=_bone_pose(layer,frame)
             for p in poses.values():
@@ -194,16 +198,25 @@ def render_frame(project:dict[str,Any],frame:int,library:dict[str,EffectOrgan],c
         if cap['start_frame']<=frame<cap['end_frame']:
             lay={'text':cap['text'],'scale':cap['scale'],'color':[255,255,255],'padding':2,'background_color':[0,0,0],'font_media_id':cap.get('font_media_id'),'font_size':cap.get('font_size',14)}
             tw,th,rgba,ev=_text_rgba(lay,cache); cypos=h-th//2-3 if cap['position']=='bottom' else th//2+3;_composite_rgba(pix,w,h,rgba,tw,th,w//2,cypos,tw,th,0,900,'normal');visible.append({'id':cap['id'],'kind':'caption','text_digest':digest(cap['text']),'text_boundary':ev})
+    requested_refs=list(project['effects']); active_refs=requested_refs
+    if effect_limit is not None:
+        active_refs=requested_refs[:max(0,int(effect_limit))]
     refs=[]
-    for ref in project['effects']:
+    for ref in active_refs:
         if ref not in library: raise RenderError(f'missing effect organ: {ref}')
         organ=library[ref];pix=[organ.apply(r,g,b,i%w,i//w) for i,(r,g,b) in enumerate(pix)];refs.append(ref)
     body=bytearray()
     for r,g,b in pix: body.extend((r,g,b))
-    ppm=f'P6\n{w} {h}\n255\n'.encode()+bytes(body); pd='sha256:'+hashlib.sha256(body).hexdigest();state={'frame':frame,'camera':{'x':cx,'y':cy,'zoom_milli':zoom},'visible_layers':visible,'effects':refs,'pixel_digest':pd};state['state_digest']=digest(state);return ppm,state
+    ppm=f'P6\n{w} {h}\n255\n'.encode()+bytes(body); pd='sha256:'+hashlib.sha256(body).hexdigest();state={'frame':frame,'camera':{'x':cx,'y':cy,'zoom_milli':zoom},'visible_layers':visible,'effects':refs,'pixel_digest':pd}
+    if realization:
+        state['realization']={'contract_digest':realization.get('contract_digest'),'tier':realization.get('tier'),'skipped_effects':requested_refs[len(active_refs):]}
+    state['state_digest']=digest(state);return ppm,state
 
-def render_project(project:dict[str,Any],output_dir:Path,machine_root:Path)->dict[str,Any]:
+def render_project(project:dict[str,Any],output_dir:Path,machine_root:Path,realization:dict[str,Any]|None=None)->dict[str,Any]:
     output_dir=Path(output_dir);fd=output_dir/'frames';fd.mkdir(parents=True,exist_ok=True);lib=load_effect_library(machine_root);cache=MediaCache(project,output_dir,machine_root);states=[];files=[]
     for f in range(project['duration_frames']):
-        ppm,state=render_frame(project,f,lib,cache);p=fd/f'frame-{f:06d}.ppm';p.write_bytes(ppm);states.append(state);files.append({'path':p.name,'digest':file_digest(p)})
-    m={'schema':'axm.framestate.frame-manifest/v0.4','project_digest':digest(project),'media_manifest_digest':cache.manifest['manifest_digest'],'frame_count':len(states),'states':states,'files':files};m['manifest_digest']=digest(m);(output_dir/'frame-manifest.json').write_bytes(canonical_json(m)+b'\n');return m
+        ppm,state=render_frame(project,f,lib,cache,realization);p=fd/f'frame-{f:06d}.ppm';p.write_bytes(ppm);states.append(state);files.append({'path':p.name,'digest':file_digest(p)})
+    m={'schema':'axm.framestate.frame-manifest/v0.5' if realization else 'axm.framestate.frame-manifest/v0.4','project_digest':digest(project),'media_manifest_digest':cache.manifest['manifest_digest'],'frame_count':len(states),'states':states,'files':files}
+    if realization:
+        m['realization_contract_digest']=realization.get('contract_digest');m['realization_tier']=realization.get('tier')
+    m['manifest_digest']=digest(m);(output_dir/'frame-manifest.json').write_bytes(canonical_json(m)+b'\n');return m

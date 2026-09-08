@@ -24,6 +24,7 @@ CAPABILITIES={
 'native-speech-synthesis':('tested','native fixed-point/table oscillator + rule/phoneme formant synthesis emits PCM without a speech engine'),
 'speech-phoneme-state':('tested','text expands into inspectable pronunciation/phoneme timing state with exact digest lineage'),
 'speech-repeat-verification':('tested','same text/voice/rate reproduces the same native PCM and speech receipt'),
+'human-intelligible-native-speech':('gap','v0.8 native waveform path is real but human listening feedback found the proof not intelligible as words; intelligibility/naturalness remains unsolved'),
 'external-speech-adapter':('external-boundary','legacy/explicit eSpeak path remains available and receipted when selected'),
 'effect-organs':('executable','detached effect forge/adoption path'),
 'pixel-program-effects':('executable','bounded effect stack language, no eval'),
@@ -54,12 +55,18 @@ CAPABILITIES={
 'prompt-rehearsal-bridge':('tested','prompt-applied candidate state can enter deterministic rehearsal before final render'),
 'prompt-repeat-verification':('tested','same project + same prompt produces stable plan/candidate state and repeat-verifiable final output'),
 'daily-recovery':('executable','whole-body snapshot before supported live adoption'),
+'machine-capability-probe':('tested','bounded host probe records cores/memory and executable dependency/backend facts without person/device identity fingerprinting'),
+'adaptive-realization-planner':('tested','canonical project + machine capabilities + user policy compile into deterministic render contract'),
+'expression-degradation-receipts':('tested','particle/shadow/effect reductions are explicit deltas while canonical project digest remains unchanged'),
+'user-realization-policy':('tested','exact/adaptive/performance-first policy and no-degrade controls outrank automatic optimization'),
+'adaptive-render-repeat-verification':('tested','same canonical state + machine capability state + policy reproduces the same realization contract and native frames'),
+'gpu-backend-selection':('gap','v0.9 only executes cpu-software; Metal/Vulkan/WebGPU/native GPU paths are not claimed'),
 'natural-language-directing':('gap','bounded direct/style prompts are native, but unrestricted free-form semantic language still requires an explicit translator/interpretation boundary'),
 'arbitrary-self-modification':('gap','growth remains bounded; no arbitrary self-write authority'),
 }
 
 def capability_summary()->dict[str,Any]:
-    return {'schema':'axm.framestate.capability-map/v0.8','capabilities':{k:{'status':v[0],'evidence':v[1]} for k,v in CAPABILITIES.items()}}
+    return {'schema':'axm.framestate.capability-map/v0.9','capabilities':{k:{'status':v[0],'evidence':v[1]} for k,v in CAPABILITIES.items()}}
 
 def analyze_requirements(required:list[str])->dict[str,Any]:
     rows=[];ready=True

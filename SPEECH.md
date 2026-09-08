@@ -59,3 +59,10 @@ Creative-brief narration now compiles to the native engine by default.
 This is a small rule/formant synthesizer, not a neural TTS model and not a claim of human-level naturalness. English pronunciation coverage is deliberately bounded by an inspectable lexicon plus deterministic spelling rules. Unknown or awkward pronunciations are quality gaps to improve, not reasons to hide an external model inside the native claim.
 
 The previous eSpeak path remains available when explicitly selected as `engine: "espeak"`; it remains an external boundary with its own receipts.
+
+
+## Human listening evidence after v0.8
+
+The deterministic synthesis proof succeeded mechanically, but a human listening check reported that the produced sample did not sound like recognizable words. That means v0.8 proved **owned deterministic waveform/speech-state generation**, not usable human-intelligible TTS.
+
+FrameState therefore tracks `human-intelligible-native-speech` as a gap. Improving pronunciation, coarticulation, envelopes, excitation, prosody and voice quality belongs in a later speech/voice specialist effort rather than being silently overstated here.

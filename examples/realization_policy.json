@@ -1,0 +1,1 @@
+{"schema":"axm.framestate.realization-policy/v0.1","mode":"adaptive","allow_particle_reduction":true,"min_particle_density_milli":250,"allow_shadow_disable":true,"allow_effect_pass_reduction":false,"min_effect_passes":0,"preferred_export_profile":"auto"}

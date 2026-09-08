@@ -4,7 +4,7 @@ from pathlib import Path
 from .canonical import load_project,canonical_json
 from .capabilities import analyze_requirements,capability_summary
 from .forge import adopt_effect,spawn_effect,adopt_recipe,spawn_recipe
-from .receipts import render_with_receipt,verify_repeat
+from .receipts import render_with_receipt,verify_repeat,render_realized_with_receipt,verify_realized_repeat
 from .snapshot import create_daily_snapshot
 from .review import review_project
 from .director import compile_plan_file,compile_brief_file
@@ -17,6 +17,7 @@ from .prompts import interpret_prompt,prompt_project,explain_prompt_token
 from .director import compile_plan,compile_brief
 from .canonical import normalize_project
 from .speech import write_native_wav,text_to_phonemes
+from .realization import probe_machine,normalize_machine_capabilities,normalize_realization_policy,plan_realization,verify_contract
 
 def _root(): return Path.cwd().resolve()
 def _print(v): print(json.dumps(v,indent=2,sort_keys=True,ensure_ascii=False))
@@ -45,6 +46,9 @@ def main(argv:list[str]|None=None)->int:
     x=sub.add_parser('explain-prompt-token');x.add_argument('token')
     x=sub.add_parser('speak-native');x.add_argument('text');x.add_argument('output');x.add_argument('--voice',default='native-neutral-1');x.add_argument('--rate-wpm',type=int,default=165)
     x=sub.add_parser('inspect-speech');x.add_argument('text')
+    sub.add_parser('probe-machine')
+    x=sub.add_parser('plan-realization');x.add_argument('project');x.add_argument('--machine');x.add_argument('--policy')
+    x=sub.add_parser('render-adaptive');x.add_argument('project');x.add_argument('output');x.add_argument('--machine');x.add_argument('--policy');x.add_argument('--no-assemble',action='store_true');x.add_argument('--verify-repeat',action='store_true')
     x=sub.add_parser('rehearse');x.add_argument('input');x.add_argument('output');x.add_argument('--policy');x.add_argument('--profile',choices=['fast','h264','quality'],default='h264');x.add_argument('--verify-repeat',action='store_true')
     x=sub.add_parser('make');x.add_argument('input');x.add_argument('output');x.add_argument('--profile',choices=['fast','h264','quality'],default='h264',help='accepts canonical project, shot-plan or creative-brief JSON and renders final video');x.add_argument('--rehearse',action='store_true');x.add_argument('--policy');x.add_argument('--verify-repeat',action='store_true')
     a=p.parse_args(argv);root=_root()
@@ -82,6 +86,13 @@ def main(argv:list[str]|None=None)->int:
     elif a.command=='explain-prompt-token':_print(explain_prompt_token(a.token))
     elif a.command=='speak-native':_print(write_native_wav(a.text,Path(a.output),a.voice,a.rate_wpm))
     elif a.command=='inspect-speech':_print({'schema':'axm.framestate.speech-plan/v0.1','text':a.text,'phonemes':text_to_phonemes(a.text)})
+    elif a.command=='probe-machine':_print(probe_machine())
+    elif a.command=='plan-realization':
+        project=load_project(Path(a.project));machine=json.loads(Path(a.machine).read_text(encoding='utf-8')) if a.machine else probe_machine();policy=json.loads(Path(a.policy).read_text(encoding='utf-8')) if a.policy else None;_print(plan_realization(project,machine,policy))
+    elif a.command=='render-adaptive':
+        project=load_project(Path(a.project));machine=json.loads(Path(a.machine).read_text(encoding='utf-8')) if a.machine else probe_machine();policy=json.loads(Path(a.policy).read_text(encoding='utf-8')) if a.policy else None;r=render_realized_with_receipt(project,Path(a.output),root,machine,policy,assemble=not a.no_assemble)
+        if a.verify_repeat:r['repeat_verification']=verify_realized_repeat(project,Path(a.output)/'repeat-verification',root,machine,policy)
+        _print(r)
     elif a.command in {'rehearse','make'}:
         raw=json.loads(Path(a.input).read_text(encoding='utf-8'));schema=str(raw.get('schema',''))
         if schema.startswith('axm.framestate.shot-plan/'):

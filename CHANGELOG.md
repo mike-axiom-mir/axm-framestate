@@ -97,3 +97,24 @@ FrameState gained its own first-generation offline speech synthesizer:
 - explicit eSpeak remains available as an optional external compatibility/reference path.
 
 The native voice is intentionally robotic first-generation synthesis. Naturalness is a future quality problem, not a dependency hidden inside the standalone claim.
+
+## v0.9 Adaptive Realization Fabric
+
+FrameState gained its first executable separation between canonical project truth and machine-specific expression:
+
+- `axm.framestate.machine-capabilities/v0.1` records bounded execution facts only: logical cores, memory, explicit dependency availability, platform family and executable render backends;
+- the host probe deliberately omits usernames, paths, serials, MAC/network identifiers and unimplemented GPU claims;
+- `axm.framestate.realization-policy/v0.1` gives the user exact/adaptive/performance-first control plus explicit no-degrade overrides;
+- `axm.framestate.render-contract/v0.1` binds canonical project digest + machine capability digest + policy digest to one deterministic realization;
+- current executable adaptation covers particle density, deterministic 3D shadow work, optional effect-pass budget and compatibility export profile;
+- effect-pass reduction is opt-in because effects may carry important expression;
+- unknown memory is treated conservatively rather than promoting a machine to a richer tier;
+- frame manifests expose realized particle counts, shadow state, skipped effects and contract lineage;
+- render receipts record every expression delta and verify canonical invariants before and after rendering;
+- `exact` realization reproduces legacy native pixel digests;
+- same project + same machine capability state + same policy repeat-verifies to the same contract, frames and PCM;
+- `probe-machine`, `plan-realization` and `render-adaptive` expose the fabric through the CLI.
+
+The v0.9 floor does **not** claim Metal, Vulkan, WebGPU or other native GPU backends. `cpu-software` is the only implemented renderer. Same-state adaptive GPU realization remains future work.
+
+Human listening feedback on the v0.8 native speech proof also established a quality gap: the generated waveform was not intelligible as words to the listener. Native deterministic synthesis remains real, but human-intelligible native speech is now explicitly tracked as unsolved.
