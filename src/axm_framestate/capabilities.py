@@ -70,20 +70,23 @@ CAPABILITIES={
 'actual-renderer-studio-preview':('tested','Studio preview calls the native FrameState render_frame path in exact/adaptive modes and returns digest-bound frame state'),
 'atomic-canonical-save':('tested','Studio normalizes project state and saves through fsync + atomic replace without implicit render-to-project mutation'),
 'studio-media-intake':('tested','browser-selected assets are copied into project-local assets with sanitized names, source digests, and explicit canonical media/layer/audio state'),
-'dependency-free-core-package':('tested','CI wheel installs and packaged CLI/Studio/resume/portable entry points load without Pillow installed; optional media/font compatibility remains explicit'),
+'dependency-free-core-package':('tested','CI wheel installs and packaged CLI/Studio/resume/parallel/portable entry points load without Pillow installed; optional media/font compatibility remains explicit'),
 'portable-desktop-application':('tested','single-file frozen FrameState application embeds Python/native core + Studio resources and smoke-passes on Linux, Windows and macOS'),
 'portable-build-receipts':('tested','three-OS portable workflow records SHA-256, size, runner platform and Python version beside each frozen application artifact'),
+'parallel-frame-render-backend':('tested','two or more OS processes render independent canonical frames and the parent admits verified output in canonical order; manifest matches the single-process renderer exactly'),
+'portable-parallel-render':('tested','the one-file frozen FrameState application completes a two-worker native render on Linux, Windows and macOS'),
+'accelerated-execution-backend':('tested','FrameState has a dependency-free multi-process frame execution backend that can use additional CPU cores without changing frame truth'),
 'crash-resumable-native-render':('tested','checkpoint-admitted native frame prefix can resume to the same manifest as uninterrupted render_project output'),
 'resume-identity-gate':('tested','project/media/realization drift and corrupt admitted frame bytes fail closed; unadmitted tail bytes are discarded'),
 'render-disk-budget-gate':('tested','resumable renderer conservatively checks remaining native frame storage plus reserve before continuing'),
-'cross-python-regression':('tested','67-test complete regression tree passes on CPython 3.11, 3.12 and 3.13 in GitHub Actions'),
-'gpu-backend-selection':('gap','v0.15 still executes canonical frame realization through cpu-software only; no real GPU raster backend is claimed yet'),
+'cross-python-regression':('tested','69-test complete regression tree passes on CPython 3.11, 3.12 and 3.13 in GitHub Actions'),
+'hardware-gpu-raster-backend':('gap','physical GPU raster execution is not required for v1; cpu-software remains the pixel-reference path and cpu-parallel is the tested accelerated execution path'),
 'natural-language-directing':('gap','bounded direct/style prompts are native, but unrestricted free-form semantic language still requires an explicit translator/interpretation boundary'),
 'arbitrary-self-modification':('gap','growth remains bounded; no arbitrary self-write authority'),
 }
 
 def capability_summary()->dict[str,Any]:
-    return {'schema':'axm.framestate.capability-map/v0.15','capabilities':{k:{'status':v[0],'evidence':v[1]} for k,v in CAPABILITIES.items()}}
+    return {'schema':'axm.framestate.capability-map/v0.16','capabilities':{k:{'status':v[0],'evidence':v[1]} for k,v in CAPABILITIES.items()}}
 
 def analyze_requirements(required:list[str])->dict[str,Any]:
     rows=[];ready=True
