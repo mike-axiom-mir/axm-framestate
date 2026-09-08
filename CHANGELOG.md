@@ -135,3 +135,52 @@ FrameState separated detail density from actual render fidelity:
 - adaptive/fidelity tests expanded to 13, bringing the exact-source checkpoint to 44/44 local tests.
 
 Truth correction: more particles/details are not described as higher visual quality. They are detail density. Fidelity requires evidence from the same canonical scene.
+
+## v0.11 Canonical Studio
+
+FrameState gained its first human-facing visual creation surface without introducing a second project truth model:
+
+- local `framestate-studio` entry point using a loopback-only Python standard-library server;
+- dependency-free shipped HTML/CSS/JavaScript UI;
+- canonical project/canvas/timing/background editing;
+- common 2D/3D layer, caption, tone and native-speech editing;
+- exact/adaptive timeline preview through the real native `render_frame` path;
+- bounded prompt-plan -> explicit candidate-state mutation inside the Studio;
+- mechanical review and evidence panel;
+- raw canonical JSON remains visible as the universal interface for state without a dedicated control;
+- normalized canonical project save uses fsync + atomic replace;
+- final render returns the native/compatibility receipt rather than silently rewriting project state;
+- loopback/CSP/origin/sanitized-output boundaries keep the local surface narrow.
+
+The Studio intentionally uses the system browser as its display shell. It is not a hardened hostile multi-user web service and does not claim native desktop packaging yet.
+
+## v0.12 Crash-resumable rendering + real package/CI truth
+
+FrameState added interruption-safe native frame rendering and used its first repository CI floor to correct a hidden standalone defect.
+
+Resumable rendering:
+
+- `framestate-render-resume` entry point;
+- `axm.framestate.render-checkpoint/v0.1` binds project, conformed-media and realization identity;
+- every admitted frame stores exact frame-state + frame-file digest;
+- admitted frame bytes are rehashed before reuse;
+- stale project/media/realization checkpoints fail closed;
+- corrupt admitted frames fail closed;
+- unadmitted tail files left after interruption are deleted and rerendered rather than promoted by existence;
+- conservative remaining-native-frame disk estimate + fixed reserve can HOLD before continuing;
+- resumed final native manifests are regression-tested for equality with uninterrupted `render_project` output;
+- Studio final rendering uses a stable project-digest output identity so retry naturally reaches the same checkpoint;
+- audio/subtitles and optional FFmpeg assembly occur after native frames are complete; libx264/AAC process internals are not falsely called resumable.
+
+CI/package correction:
+
+- added GitHub Actions complete test matrix for Python 3.11, 3.12 and 3.13;
+- added JavaScript syntax and package-import smoke gates;
+- added wheel build/install and installed-entry-point/resource verification;
+- the first wheel test exposed that `media.py` imported Pillow at module import time even though `dependencies=[]` claimed a dependency-free core;
+- that apparent standalone boundary was rejected and repaired by making Pillow/FreeType a lazy optional image/font compatibility boundary;
+- native bitmap text and core Studio/CLI import paths now load without Pillow installed;
+- another first-run failure exposed one raw test fixture bypassing canonical normalization; the fixture was corrected rather than weakening the renderer contract;
+- exact-head GitHub Actions run `34268145735` then passed all four jobs: the complete 54-test tree on Python 3.11/3.12/3.13 plus the independent wheel/package gate.
+
+v0.12 still does not claim a GPU backend, weighted 3D skin deformation, unrestricted semantic language understanding, human-intelligible native speech, arbitrary self-modification, native H.264, or a fully bundled cross-platform desktop release.
