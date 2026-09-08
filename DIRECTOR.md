@@ -75,3 +75,7 @@ See `REHEARSAL.md`.
 The Director can now receive a bounded prompt plan above a canonical project, shot plan, or creative brief. Supported direct/style language is converted into explicit native operations before rehearsal. Versioned bundle meaning is inspectable through `explain-prompt-token`. Free-form emotional or artistic semantics remain a named translator/interpretation boundary rather than hidden Director authority.
 
 See `PROMPTS.md` for the prompt schemas, mappings and ambiguity rules.
+
+## v0.8 native narration
+
+Creative-brief narration now materializes `speech` with `engine: native` and `voice: native-neutral-1` unless the beat explicitly selects another engine/profile. The Director therefore no longer needs a host speech engine to create narration. Explicit eSpeak remains available for compatibility/reference. See `SPEECH.md`.

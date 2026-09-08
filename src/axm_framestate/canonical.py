@@ -3,8 +3,8 @@ import hashlib, json
 from pathlib import Path
 from typing import Any
 
-PROJECT_SCHEMAS={f'axm.framestate.project/v0.{n}' for n in range(1,5)}
-PROJECT_SCHEMA='axm.framestate.project/v0.4'
+PROJECT_SCHEMAS={f'axm.framestate.project/v0.{n}' for n in range(1,6)}
+PROJECT_SCHEMA='axm.framestate.project/v0.5'
 
 class ProjectError(ValueError): pass
 
@@ -128,7 +128,13 @@ def normalize_project(raw:Any)->dict[str,Any]:
         row={'id':str(a.get('id',f'audio-{i}')),'kind':kind,'start_frame':s,'end_frame':e,'gain_milli':_track(a.get('gain_milli',1000),f'audio[{i}].gain_milli',duration,1000),'pan_milli':_track(a.get('pan_milli',0),f'audio[{i}].pan_milli',duration,0),'loop':bool(a.get('loop',False)),'source_start_frame':_int(a.get('source_start_frame',0),f'audio[{i}].source_start_frame',0,10_000_000)}
         if kind=='tone': row['frequency_hz']=_int(a.get('frequency_hz',440),f'audio[{i}].frequency_hz',20,20000)
         elif kind=='file': row['path']=_text(a.get('path'),f'audio[{i}].path',2000)
-        elif kind=='speech': row.update(text=str(a.get('text','')),voice=str(a.get('voice','en')),rate_wpm=_int(a.get('rate_wpm',165),f'audio[{i}].rate_wpm',80,450))
+        elif kind=='speech':
+            # v0.4 and older preserve the historical eSpeak meaning when no engine
+            # was declared. v0.5+ defaults to FrameState's native deterministic mouth.
+            engine=str(a.get('engine') or ('native' if schema==PROJECT_SCHEMA else 'espeak'))
+            if engine not in {'native','espeak'}: raise ProjectError(f'audio[{i}].engine unsupported')
+            default_voice='native-neutral-1' if engine=='native' else 'en'
+            row.update(text=str(a.get('text','')),engine=engine,voice=str(a.get('voice',default_voice)),rate_wpm=_int(a.get('rate_wpm',165),f'audio[{i}].rate_wpm',80,450))
         elif kind=='child': row['media_id']=_text(a.get('media_id'),f'audio[{i}].media_id',200)
         else: raise ProjectError(f'audio[{i}].kind unsupported')
         audio.append(row)

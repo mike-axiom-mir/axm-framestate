@@ -20,7 +20,11 @@ CAPABILITIES={
 'external-audio-import':('external-boundary','FFmpeg decode source/PCM receipts'),
 'audio-mixing':('rendered','timeline mixing with gain automation'),
 'stereo-pan':('rendered','deterministic per-event pan/gain into stereo WAV'),
-'speech-synthesis':('external-boundary','eSpeak synthesis + FFmpeg conform receipts'),
+'speech-synthesis':('tested','native deterministic speech is default for v0.5 projects; legacy eSpeak remains optional'),
+'native-speech-synthesis':('tested','native fixed-point/table oscillator + rule/phoneme formant synthesis emits PCM without a speech engine'),
+'speech-phoneme-state':('tested','text expands into inspectable pronunciation/phoneme timing state with exact digest lineage'),
+'speech-repeat-verification':('tested','same text/voice/rate reproduces the same native PCM and speech receipt'),
+'external-speech-adapter':('external-boundary','legacy/explicit eSpeak path remains available and receipted when selected'),
 'effect-organs':('executable','detached effect forge/adoption path'),
 'pixel-program-effects':('executable','bounded effect stack language, no eval'),
 '3d-scene-rendering':('rendered','fixed-point primitive/mesh projection + triangle raster'),
@@ -55,7 +59,7 @@ CAPABILITIES={
 }
 
 def capability_summary()->dict[str,Any]:
-    return {'schema':'axm.framestate.capability-map/v0.7','capabilities':{k:{'status':v[0],'evidence':v[1]} for k,v in CAPABILITIES.items()}}
+    return {'schema':'axm.framestate.capability-map/v0.8','capabilities':{k:{'status':v[0],'evidence':v[1]} for k,v in CAPABILITIES.items()}}
 
 def analyze_requirements(required:list[str])->dict[str,Any]:
     rows=[];ready=True

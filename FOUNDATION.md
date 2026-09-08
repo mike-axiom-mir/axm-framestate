@@ -22,7 +22,7 @@ These roots apply above humans, AI instances and machine subsystems equally. The
 5. 2D composition, masks/chroma, particles and effect organs;
 6. 3D triangle geometry, UV sampling, morphing and shadow projection;
 7. bone-rig animation;
-8. captions, subtitles and audio composition;
+8. captions, subtitles, native deterministic speech and audio composition;
 9. frame/audio/media/render receipts;
 10. mechanical review, frame analysis and explicit gap exposure;
 11. deterministic rehearsal / iteration with evidence-backed bounded deltas before final output;
@@ -33,9 +33,9 @@ These layers may be rearranged or replaced when use produces a better structure 
 
 ## Determinism boundary
 
-FrameState aims to make project state, internal sampling, generated frame bytes and internally mixed audio observable and replayable. External codecs, decoders, speech engines and font rasterizers do not become native deterministic machinery merely because FrameState calls them.
+FrameState aims to make project state, internal sampling, generated frame bytes and internally mixed audio observable and replayable. Native speech is now one owned deterministic path. Optional external speech engines, codecs, decoders and font rasterizers do not become native machinery merely because FrameState can call them.
 
-Instead, source bytes, boundary identity and resulting conformed/output bytes are receipted. This preserves exact current-run truth without false cross-machine promises.
+For those external paths, source bytes, boundary identity and resulting conformed/output bytes are receipted. This preserves exact current-run truth without false cross-machine promises.
 
 ## Growth model
 
@@ -46,3 +46,7 @@ Current live self-growth is deliberately bounded to verified effect organs and v
 ## Prompt influence
 
 Prompt language may guide change, but it does not become project truth merely because it was written by a human or AI. Native v0.7 prompt influence must compile into explicit versioned tokens, state operations and receipts before it can modify the project. Ambiguous semantic meaning remains held or external. Prompt-applied candidates then remain subject to the same rehearsal and evidence boundaries as other candidate state.
+
+## Native speech boundary
+
+New v0.5 project speech defaults to FrameState native synthesis. Historical v0.4-and-earlier speech with no declared engine preserves the old eSpeak interpretation during migration. Native speech exposes pronunciation/phoneme state and exact PCM lineage; eSpeak remains an optional named external boundary.

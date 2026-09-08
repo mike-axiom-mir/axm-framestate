@@ -49,6 +49,7 @@ def _duration_partition(total:int,weights:list[int])->list[int]:
         else:
             dur=max(2,total*w//sw);used+=dur
         out.append(dur)
+    # compensate if integer floors + minima overshoot
     while sum(out)>total:
         i=max(range(len(out)),key=lambda j:out[j]);out[i]-=1
     while sum(out)<total:
@@ -106,7 +107,7 @@ def _builtin_shot(kind:str,beat:dict[str,Any],duration:int,index:int,pal:dict[st
         common['captions'].append({'id':'caption','start_frame':0,'end_frame':duration,'text':str(beat['caption']),'position':'bottom','scale':1})
     narration=beat.get('narration')
     if narration:
-        common['audio'].append({'id':'voice','kind':'speech','start_frame':0,'end_frame':duration,'text':str(narration),'voice':str(beat.get('voice','en')),'rate_wpm':int(beat.get('rate_wpm',165)),'gain_milli':800,'pan_milli':0})
+        common['audio'].append({'id':'voice','kind':'speech','engine':str(beat.get('speech_engine','native')),'start_frame':0,'end_frame':duration,'text':str(narration),'voice':str(beat.get('voice','native-neutral-1')),'rate_wpm':int(beat.get('rate_wpm',165)),'gain_milli':800,'pan_milli':0})
     return common
 
 
@@ -138,6 +139,7 @@ def compile_brief(raw:dict[str,Any],machine_root:Path|None=None)->dict[str,Any]:
     bed=raw.get('bed_tone')
     if bed:
         freq=int(bed.get('frequency_hz',82));gain=int(bed.get('gain_milli',30))
+        # Put a bed on every shot so compile_plan shifts it naturally.
         for shot in shots:
             shot.setdefault('audio',[]).insert(0,{'id':'bed','kind':'tone','start_frame':0,'end_frame':shot['duration_frames'],'frequency_hz':freq,'gain_milli':gain,'pan_milli':0})
     plan={'schema':'axm.framestate.shot-plan/v0.2','id':raw.get('id','brief-film'),'title':raw.get('title',raw.get('id','Brief Film')),'canvas':{'width':int(canvas.get('width',320)),'height':int(canvas.get('height',180)),'fps':fps},'background':raw.get('background',pal['bg']),'media':media,'effects':raw.get('effects',[]),'shots':shots,'metadata':{**raw.get('metadata',{}),'compiled_from':'creative-brief','style':style,'format':raw.get('format','general'),'beat_count':len(beats)}}

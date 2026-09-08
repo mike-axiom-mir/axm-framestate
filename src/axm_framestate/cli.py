@@ -16,6 +16,7 @@ from .rehearsal_metrics import normalize_policy
 from .prompts import interpret_prompt,prompt_project,explain_prompt_token
 from .director import compile_plan,compile_brief
 from .canonical import normalize_project
+from .speech import write_native_wav,text_to_phonemes
 
 def _root(): return Path.cwd().resolve()
 def _print(v): print(json.dumps(v,indent=2,sort_keys=True,ensure_ascii=False))
@@ -42,6 +43,8 @@ def main(argv:list[str]|None=None)->int:
     x=sub.add_parser('interpret-prompt');x.add_argument('input');x.add_argument('prompt')
     x=sub.add_parser('prompt-make');x.add_argument('input');x.add_argument('prompt');x.add_argument('output');x.add_argument('--profile',choices=['fast','h264','quality'],default='h264');x.add_argument('--policy');x.add_argument('--no-rehearse',action='store_true');x.add_argument('--verify-repeat',action='store_true')
     x=sub.add_parser('explain-prompt-token');x.add_argument('token')
+    x=sub.add_parser('speak-native');x.add_argument('text');x.add_argument('output');x.add_argument('--voice',default='native-neutral-1');x.add_argument('--rate-wpm',type=int,default=165)
+    x=sub.add_parser('inspect-speech');x.add_argument('text')
     x=sub.add_parser('rehearse');x.add_argument('input');x.add_argument('output');x.add_argument('--policy');x.add_argument('--profile',choices=['fast','h264','quality'],default='h264');x.add_argument('--verify-repeat',action='store_true')
     x=sub.add_parser('make');x.add_argument('input');x.add_argument('output');x.add_argument('--profile',choices=['fast','h264','quality'],default='h264',help='accepts canonical project, shot-plan or creative-brief JSON and renders final video');x.add_argument('--rehearse',action='store_true');x.add_argument('--policy');x.add_argument('--verify-repeat',action='store_true')
     a=p.parse_args(argv);root=_root()
@@ -77,6 +80,8 @@ def main(argv:list[str]|None=None)->int:
         project=creation_input(a.input);raw_prompt=json.loads(Path(a.prompt).read_text(encoding='utf-8'));policy=json.loads(Path(a.policy).read_text(encoding='utf-8')) if a.policy else None
         _print(prompt_project(project,raw_prompt,Path(a.output),root,rehearse=not a.no_rehearse,rehearsal_policy=policy,profile=a.profile,verify_final=a.verify_repeat))
     elif a.command=='explain-prompt-token':_print(explain_prompt_token(a.token))
+    elif a.command=='speak-native':_print(write_native_wav(a.text,Path(a.output),a.voice,a.rate_wpm))
+    elif a.command=='inspect-speech':_print({'schema':'axm.framestate.speech-plan/v0.1','text':a.text,'phonemes':text_to_phonemes(a.text)})
     elif a.command in {'rehearse','make'}:
         raw=json.loads(Path(a.input).read_text(encoding='utf-8'));schema=str(raw.get('schema',''))
         if schema.startswith('axm.framestate.shot-plan/'):

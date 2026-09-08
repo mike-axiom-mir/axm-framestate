@@ -5,6 +5,7 @@ from typing import Any
 from .canonical import digest,file_digest
 from .media import resolve_source, ffmpeg_version
 from .timeline import sample
+from .speech import synthesize_native
 
 SAMPLE_RATE=48000
 
@@ -24,7 +25,7 @@ def _decode_audio_bytes(data:bytes,channels:int=1)->bytes:
     if p.returncode!=0: raise AudioError(p.stderr.decode('utf-8','replace')[-4000:])
     return p.stdout
 
-def _speech(text:str,voice:str,rate:int)->tuple[bytes,dict[str,Any]]:
+def _speech_espeak(text:str,voice:str,rate:int)->tuple[bytes,dict[str,Any]]:
     exe=shutil.which('espeak') or shutil.which('espeak-ng')
     if not exe: raise AudioError('espeak/espeak-ng not available')
     v=subprocess.run([exe,'--version'],capture_output=True,text=True,check=False).stdout.splitlines()[:1]
@@ -57,7 +58,11 @@ def render_audio(project:dict[str,Any],path:Path,machine_root:Path|None=None,out
             src=resolve_source(root,event['path']); raw=_decode_audio(src,1); vals=[x[0] for x in struct.iter_unpack('<h',raw)]; off=event.get('source_start_frame',0)*SAMPLE_RATE//fps;vals=vals[off:] if off<len(vals) else []
             ev.update(declared_path=event['path'],source_digest=file_digest(src),decoded_pcm_digest='sha256:'+hashlib.sha256(raw).hexdigest(),decoder=ffmpeg_version())
         elif kind=='speech':
-            raw,sev=_speech(event['text'],event['voice'],event['rate_wpm']);vals=[x[0] for x in struct.iter_unpack('<h',raw)];ev.update(text_digest=digest(event['text']),**sev)
+            if event.get('engine','native')=='native':
+                raw,sev=synthesize_native(event['text'],event['voice'],event['rate_wpm'])
+            else:
+                raw,sev=_speech_espeak(event['text'],event['voice'],event['rate_wpm'])
+            vals=[x[0] for x in struct.iter_unpack('<h',raw)];ev.update(sev);ev['engine']=event.get('engine','native');ev.setdefault('text_digest',digest(event['text']))
         elif kind=='child':
             # Render child once if necessary and decode its exact WAV
             from .media import MediaCache
@@ -77,4 +82,4 @@ def render_audio(project:dict[str,Any],path:Path,machine_root:Path|None=None,out
             v=max(-32768,min(32767,samples[c][i]));inter.extend(struct.pack('<h',v))
     path=Path(path);path.parent.mkdir(parents=True,exist_ok=True)
     with wave.open(str(path),'wb') as wf: wf.setnchannels(channels);wf.setsampwidth(2);wf.setframerate(SAMPLE_RATE);wf.writeframes(bytes(inter))
-    result={'schema':'axm.framestate.audio-manifest/v0.6','sample_rate':SAMPLE_RATE,'channels':channels,'samples_per_channel':total,'pcm_digest':'sha256:'+hashlib.sha256(inter).hexdigest(),'wav_digest':file_digest(path),'events_digest':digest(project.get('audio',[])),'preclip_peak_abs':preclip_peak,'clipped_sample_values':clipped_values,'source_evidence':evidence};result['manifest_digest']=digest(result);return result
+    result={'schema':'axm.framestate.audio-manifest/v0.8','sample_rate':SAMPLE_RATE,'channels':channels,'samples_per_channel':total,'pcm_digest':'sha256:'+hashlib.sha256(inter).hexdigest(),'wav_digest':file_digest(path),'events_digest':digest(project.get('audio',[])),'preclip_peak_abs':preclip_peak,'clipped_sample_values':clipped_values,'source_evidence':evidence};result['manifest_digest']=digest(result);return result

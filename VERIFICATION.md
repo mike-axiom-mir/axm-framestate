@@ -1,54 +1,50 @@
-# FrameState v0.7 verification
+# FrameState v0.8 verification
 
-Hard verification for the Prompt / Style Interpretation Fabric checkpoint:
+Hard verification for the Native Deterministic Speech Organ checkpoint:
 
-- `PYTHONPATH=src python -m unittest discover -s tests -v` -> **26/26 PASS**
-- all v0.6 construction, Director, recipe and rehearsal tests remain green;
-- same project + same prompt -> same prompt-plan digest and same candidate-project digest -> **PASS**;
-- ambiguous `cooler` / `dramatic` prompt -> visible held ambiguity with no construction-state mutation -> **PASS**;
-- direct prompt edits modify canonical title/audio/caption state -> **PASS**;
-- bounded prompt capability probe -> **READY**;
-- prompt-applied candidate -> rehearsal -> final repeat verification -> **PASS**.
+- existing v0.7 machine/prompt/rehearsal regression groups remain green;
+- native-speech group -> **5/5 PASS**;
+- aggregate current checkpoint -> **31/31 PASS across four test groups**;
+- native-speech capability probe -> **READY**;
+- same text + voice + rate -> same PCM + speech receipt -> **PASS**;
+- native timeline speech while eSpeak/FFmpeg discovery is mocked unavailable -> **PASS**;
+- legacy v0.4 speech without engine -> `espeak`, new v0.5 speech without engine -> `native` -> **PASS**;
+- creative-brief narration defaults to native engine -> **PASS**.
 
-## Prompt proof
+## Native standalone speech proof
 
-Input creation brief: `examples/rehearsal_brief_compact.json`
+Text:
 
-Prompt: `examples/prompt_cinematic.json`
+`FrameState speaks with its own deterministic voice.`
 
-Recognized native tokens:
+Voice profile: `native-neutral-1`
 
-- `cinematic` -> `builtin:prompt-style.cinematic@1`
-- `cleaner` -> `builtin:prompt-style.cleaner@1`
-- `more-readable` -> rehearsal hints only
+- sample rate: **48000 Hz**
+- channels: **1**
+- native duration: **162240 samples / 3.38 seconds**
+- external dependencies: **[]**
+- raw native speech PCM: `sha256:f9b926c2afe8825db0b9e554e11fd79558304bb5a391b7a1650fef9de6e05c76`
+- standalone WAV: `sha256:5740e370f4643ae1b826e394196c149bc77f036ac1d116892106fd918ec38039`
+- native speech receipt: `sha256:99ec2e14db8a61503dea7c00e2cadc50a309729e149c0fd6793f2900e1d3e244`
 
-Native prompt operations:
+## Native speech movie proof
 
-- particle count factor `700/1000`;
-- non-speech audio factor `900/1000`;
-- visual fade minimum `3` frames where bounded by active span;
-- camera interpolation -> smoothstep.
+Input: `examples/native_speech.json`
 
-Prompt plan: `sha256:fa20418fac5910f9469d27d70f6f2d8cea769b426735c2cf3d429af276440233`
+The FrameState core render (frames + native PCM/WAV, no MP4 assembly) records:
 
-Candidate project: `sha256:151ef23949d38da84bb0f2adc516e8411dc3ebe1c1e230a27ba8574300bc673c`
+- canonical project: `sha256:5d693698ed4ed598cde2133776d813aee841d8b29c4d6d42828d3cf9760211e4`
+- mixed audio PCM: `sha256:2c8d40f9e0596203bf13e570c66470f68ba906113d84d2c42204022bc82e860d`
+- speech engine: `native`
+- speech external dependencies: `[]`
 
-Rehearsal then accepted three evidence-backed repairs and stopped at `NO_JUSTIFIED_AUTO_DELTA`:
+The same project was also exported through the existing explicit FFmpeg compatibility boundary:
 
-1. audio headroom;
-2. caption readability;
-3. text fit.
-
-Final project: `sha256:ad58fef0d9b6877809af1db96379be1da73bd04cc16572d711ecdf63dd4029f9`
-
-Final MP4: `sha256:95daf1ba4c9f51b8b2d72a4a7c829fb410f0db220224deb189409d3829f694db`
-
-Prompt receipt: `sha256:7242380e9069e9bea464c86c8401f58971de4bc436feb4f98e0998c72bc4d7e1`
-
-Rehearsal receipt: `sha256:e89a85cda2d6a592dde2a96c64b5a8240d95126cf101e94b54ba7663969287d3`
-
-Final repeat verification: `sha256:06da3fc062a6e3dcb59a4f556f30916c24f1766aecd07689c7b1e515b561feaf`
+- duration: **48 frames / 4 seconds**
+- output: **160x90 H.264 + 48 kHz mono AAC MP4**
+- MP4: `sha256:af1a06b2054adcb067efeb8a5179d8aa8456e526a056f0fa11d150416f2be991`
+- native project repeat verification: `sha256:07199e0bcce6071a48d28052a6666fc1c0960b542a615f4e3ac4bcceaa1067cc`
 
 ## Truth boundary
 
-This proves deterministic bounded prompt interpretation and prompt-to-state replay. It does not prove that words such as `cinematic`, `dramatic`, `lonely`, or `epic` have one universal artistic meaning. Native style words are versioned machine vocabulary; unresolved semantic interpretation remains visible or external.
+This proves a native deterministic first-generation speech path, not human-quality speech, arbitrary language understanding, voice cloning, or a neural TTS model. Pronunciation coverage is currently bounded by an inspectable lexicon and deterministic spelling rules. eSpeak remains optional and explicit. MP4/H.264 export still uses FFmpeg; native speech itself does not.

@@ -79,3 +79,21 @@ FrameState gained a bounded prompt-to-state interface above the Director and reh
 - `interpret-prompt`, `prompt-make`, and `explain-prompt-token` expose the layer through the CLI.
 
 The prompt layer does not claim general natural-language understanding or artistic judgment. Prompt effects must become inspectable native state or remain a named interpretation boundary.
+
+## v0.8 Native Deterministic Speech Organ
+
+FrameState gained its own first-generation offline speech synthesizer:
+
+- project schema `v0.5` adds explicit speech-engine state;
+- new v0.5 speech defaults to `native` while v0.4-and-earlier speech without an engine migrates as `espeak` to preserve historical intent;
+- native text -> lexicon/rule pronunciation -> phoneme/pause timing -> deterministic formant/noise synthesis -> exact 48 kHz s16 PCM;
+- oscillator lookup is built from FrameState's integer CORDIC primitive rather than host TTS or floating trigonometric synthesis;
+- deterministic spelling fallback keeps unknown words speakable without a downloaded dictionary/model;
+- native voice profiles: `native-neutral-1`, `native-low-1`, `native-bright-1`;
+- speech receipts expose text, phoneme plan, voice profile, sample count and exact PCM identity with `external_dependencies: []`;
+- creative-brief narration now defaults to native speech;
+- `speak-native` writes a standalone WAV and receipt;
+- `inspect-speech` exposes the pronunciation/phoneme state before synthesis;
+- explicit eSpeak remains available as an optional external compatibility/reference path.
+
+The native voice is intentionally robotic first-generation synthesis. Naturalness is a future quality problem, not a dependency hidden inside the standalone claim.

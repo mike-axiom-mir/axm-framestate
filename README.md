@@ -15,7 +15,7 @@ Only four rules sit above the machine:
 
 Everything else is working architecture and may be replaced when better evidence appears.
 
-## v0.7 construction space
+## v0.8 construction space
 
 One canonical project can combine:
 
@@ -25,7 +25,7 @@ One canonical project can combine:
 - image masks, chroma key, wipes, rotation, fades and normal/add/multiply/screen compositing;
 - native 5x7 deterministic text plus supplied-font Unicode rasterization through a receipted Pillow/FreeType boundary;
 - burned captions and exact WebVTT subtitle export;
-- procedural tones, imported audio, gain automation, stereo pan and optional eSpeak narration;
+- procedural tones, imported audio, gain automation, stereo pan, native deterministic narration and optional explicit eSpeak narration;
 - primitive 3D and OBJ mesh import;
 - OBJ UV texture sampling, fixed-point XYZ rotation/projection, morph targets and deterministic cast-shadow projection;
 - hierarchical 2D bone rigs;
@@ -75,7 +75,7 @@ PYTHONPATH=src python -m axm_framestate gaps \
   examples/advanced_requirements.json
 ```
 
-Current checkpoint: **26/26 unit tests pass**. The rehearsal and bounded-prompt capability probes return READY. The compact prompt proof compiles versioned prompt direction into explicit native state, rehearses the candidate, and reaches a repeat-verifiable final project.
+Current checkpoint: **31/31 unit tests pass across the four regression groups**. Rehearsal, bounded-prompt and native-speech capability probes return READY. Native speech produces exact PCM with no speech-engine/FFmpeg dependency, while standard MP4 export remains an explicit FFmpeg boundary.
 
 ## Inspect rather than trust
 
@@ -110,7 +110,7 @@ FrameState separates evidence planes deliberately:
 
 - canonical project state is normalized and digest-bound;
 - generated PPM frame bytes and per-frame state are exact and receipted;
-- imported media bytes are digest-bound; FFmpeg/Pillow/font/speech boundaries remain named and version/evidence receipted;
+- imported media bytes are digest-bound; FFmpeg/Pillow/font and optional external-speech boundaries remain named and version/evidence receipted;
 - internally mixed PCM/WAV is exact for the current runtime;
 - MP4 encoding remains an external FFmpeg boundary, with no false universal bit-identical codec claim;
 - current self-growth is bounded to tested effect organs, not arbitrary self-rewriting;
@@ -144,3 +144,16 @@ PYTHONPATH=src python -m axm_framestate prompt-make \
 ```
 
 The same prompt on the same project produces the same prompt plan and candidate state. Native style words are versioned. Ambiguous terms remain visible and held rather than receiving silent machine meaning. See `PROMPTS.md`.
+
+
+## v0.8 native speech: FrameState owns a mouth
+
+New project speech defaults to the native deterministic synthesizer:
+
+```bash
+PYTHONPATH=src python -m axm_framestate speak-native \
+  "FrameState speaks with its own deterministic voice." \
+  renders/native-voice.wav
+```
+
+The native route uses inspectable pronunciation/phoneme state and emits exact 48 kHz PCM/WAV without eSpeak, FFmpeg, a model, internet, or downloaded voice. Historical v0.4 speech without an engine preserves its prior eSpeak meaning; explicit eSpeak remains optional. See `SPEECH.md`.
