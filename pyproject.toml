@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "axm-framestate"
-version = "0.13.0"
+version = "0.14.0"
 description = "Standalone deterministic video creation and growth machine"
 requires-python = ">=3.11"
 license = "Apache-2.0"
@@ -15,6 +15,7 @@ dependencies = []
 framestate = "axm_framestate.cli:main"
 framestate-studio = "axm_framestate.studio:main"
 framestate-render-resume = "axm_framestate.resumable:main"
+framestate-portable = "axm_framestate.portable:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
