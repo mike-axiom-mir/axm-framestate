@@ -32,7 +32,7 @@ jobs:
         shell: bash
         run: |
           python -m pip install --upgrade pip pyinstaller
-          python -m PyInstaller --noconfirm --clean --onefile --name FrameState --paths src --collect-data axm_framestate packaging/portable_entry.py
+          python -m PyInstaller --noconfirm --clean packaging/FrameState.spec
       - name: Smoke exact frozen executable
         shell: bash
         run: python packaging/smoke_portable.py "dist/FrameState${{ matrix.exe_ext }}"
