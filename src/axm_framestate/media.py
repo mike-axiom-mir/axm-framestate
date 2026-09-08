@@ -2,7 +2,6 @@ from __future__ import annotations
 import hashlib, io, json, shutil, subprocess
 from pathlib import Path
 from typing import Any
-from PIL import Image
 from .canonical import canonical_json, digest, file_digest, load_project
 
 class MediaError(RuntimeError): pass
@@ -18,17 +17,28 @@ def ffmpeg_version()->str|None:
     p=subprocess.run([exe,'-version'],capture_output=True,text=True,check=False)
     return p.stdout.splitlines()[0] if p.stdout else 'ffmpeg-present-version-unknown'
 
+def _pillow_image():
+    try:
+        from PIL import Image
+        return Image
+    except ImportError as exc:
+        raise MediaError('Pillow is required only for imported image/font compatibility boundaries') from exc
+
 def pillow_version()->str:
-    import PIL
+    try:
+        import PIL
+    except ImportError as exc:
+        raise MediaError('Pillow is required only for imported image/font compatibility boundaries') from exc
     return f'Pillow {getattr(PIL,"__version__","unknown")}'
 
-def _ppm_bytes(img:Image.Image)->bytes:
+def _ppm_bytes(img:Any)->bytes:
     rgb=img.convert('RGB'); w,h=rgb.size
     return f'P6\n{w} {h}\n255\n'.encode('ascii')+rgb.tobytes()
 
 def read_ppm(path:Path)->tuple[int,int,bytes]:
     raw=Path(path).read_bytes()
     if not raw.startswith(b'P6'):
+        Image=_pillow_image()
         with Image.open(io.BytesIO(raw)) as im:
             rgb=im.convert('RGB'); return rgb.width,rgb.height,rgb.tobytes()
     # tiny parser, comments unsupported intentionally for internally emitted PPMs
@@ -44,6 +54,7 @@ def conform_media(project:dict[str,Any], output_dir:Path, machine_root:Path)->di
         if not src.is_file(): raise MediaError(f"media missing: {m['path']}")
         evidence={'id':m['id'],'kind':m['kind'],'declared_path':m['path'],'source_digest':file_digest(src)}
         if m['kind']=='image':
+            Image=_pillow_image()
             with Image.open(src) as im:
                 rgb=im.convert('RGB'); data=_ppm_bytes(rgb)
             d=target/m['id']; d.mkdir(exist_ok=True); p=d/'frame-000000.ppm'; p.write_bytes(data)
