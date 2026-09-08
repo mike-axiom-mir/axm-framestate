@@ -24,7 +24,7 @@ from .prompts import apply_prompt_plan, interpret_prompt
 from .realization import plan_realization, probe_machine
 from .render import render_frame
 from .review import review_project
-from .receipts import render_with_receipt, render_realized_with_receipt
+from .resumable import render_resumable_with_receipt, render_realized_resumable_with_receipt
 
 STUDIO_SCHEMA = "axm.framestate.studio-session/v0.1"
 _JSON_LIMIT = 8 * 1024 * 1024
@@ -81,7 +81,7 @@ def ppm_to_png(ppm: bytes) -> bytes:
         raise StudioError("preview renderer returned unsupported PPM")
     try:
         width, height = (int(v) for v in parts[1].split())
-    except Exception as exc:
+    except Exception as exc:  # pragma: no cover - malformed internal renderer output
         raise StudioError("preview renderer returned invalid PPM dimensions") from exc
     body = parts[3]
     if width < 1 or height < 1 or len(body) != width * height * 3:
@@ -214,9 +214,9 @@ class StudioApp:
             raise StudioError("render mode must be exact or adaptive")
         output = self.render_root / _safe_output_name(name)
         if mode == "adaptive":
-            receipt = render_realized_with_receipt(project, output, self.machine_root, probe_machine(), {"mode": "adaptive"}, assemble=True)
+            receipt = render_realized_resumable_with_receipt(project, output, self.machine_root, probe_machine(), {"mode": "adaptive"}, assemble=True)
         else:
-            receipt = render_with_receipt(project, output, self.machine_root, assemble=True, profile=profile)
+            receipt = render_resumable_with_receipt(project, output, self.machine_root, assemble=True, profile=profile)
         return {"output": str(output), "receipt": receipt}
 
 
@@ -227,7 +227,7 @@ def _ui_bytes(name: str) -> bytes:
 
 def make_handler(app: StudioApp):
     class Handler(BaseHTTPRequestHandler):
-        server_version = "FrameStateStudio/0.11"
+        server_version = "FrameStateStudio/0.12"
 
         def log_message(self, format: str, *args: Any) -> None:
             return
@@ -258,7 +258,7 @@ def make_handler(app: StudioApp):
             except (UnicodeDecodeError, json.JSONDecodeError) as exc:
                 raise StudioError("request body must be UTF-8 JSON") from exc
 
-        def do_GET(self) -> None:
+        def do_GET(self) -> None:  # noqa: N802
             try:
                 if self.path in {"/", "/index.html"}:
                     return self._send(HTTPStatus.OK, _ui_bytes("index.html"), "text/html; charset=utf-8")
@@ -272,7 +272,7 @@ def make_handler(app: StudioApp):
             except Exception as exc:
                 return self._json(HTTPStatus.INTERNAL_SERVER_ERROR, {"error": str(exc)})
 
-        def do_POST(self) -> None:
+        def do_POST(self) -> None:  # noqa: N802
             try:
                 host = self.headers.get("Host", "")
                 origin = self.headers.get("Origin")
