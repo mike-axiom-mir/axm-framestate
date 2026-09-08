@@ -15,6 +15,7 @@ dependencies = []
 framestate = "axm_framestate.cli:main"
 framestate-studio = "axm_framestate.studio:main"
 framestate-render-resume = "axm_framestate.resumable:main"
+framestate-render-parallel = "axm_framestate.parallel_movie:main"
 framestate-portable = "axm_framestate.portable:main"
 
 [tool.setuptools.packages.find]
