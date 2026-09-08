@@ -8,7 +8,8 @@ CAPABILITIES={
 'transform-animation':('rendered','integer scalar/from-to/keyframe tracks'),
 'multi-keyframe-animation':('rendered','ordered integer keyframe curves'),
 'camera-animation':('rendered','camera x/y/zoom sampled into frame state'),
-'image-sprite-import':('external-boundary','input digest + optional Pillow conforming evidence for general image formats'),
+'image-sprite-import':('external-boundary','native PNG is owned; other common image formats remain optional Pillow compatibility boundaries with source/conformed evidence'),
+'native-png-import':('tested','8-bit non-interlaced grayscale/RGB/gray-alpha/RGBA PNG uses native CRC + zlib/filter decoding and renders without Pillow'),
 'video-clip-import':('external-boundary','input digest + FFmpeg-conformed frame evidence'),
 'video-time-remap':('rendered','speed/reverse/freeze/source-frame selection'),
 'video-compositor':('rendered','normal/add/multiply/screen, opacity, rotation, wipes'),
@@ -17,7 +18,8 @@ CAPABILITIES={
 'unicode-font-shaping':('external-boundary','supplied font digest + optional Pillow/FreeType runtime evidence'),
 'captions-subtitles':('rendered','burned captions + exact WebVTT export'),
 'procedural-tone-audio':('rendered','48k tone synthesis'),
-'external-audio-import':('external-boundary','FFmpeg decode source/PCM receipts'),
+'external-audio-import':('external-boundary','native PCM WAV is owned; other audio formats remain FFmpeg compatibility boundaries with source/PCM receipts'),
+'native-wav-import':('tested','uncompressed 8/16/24/32-bit integer PCM WAV decodes and deterministically resamples without FFmpeg'),
 'audio-mixing':('rendered','timeline mixing with gain automation'),
 'stereo-pan':('rendered','deterministic per-event pan/gain into stereo WAV'),
 'speech-synthesis':('tested','native deterministic speech is default for v0.5 projects; legacy eSpeak remains optional'),
@@ -65,18 +67,20 @@ CAPABILITIES={
 'local-creation-studio':('tested','loopback-only dependency-free Studio edits canonical project state and retains raw canonical JSON as universal state access'),
 'actual-renderer-studio-preview':('tested','Studio preview calls the native FrameState render_frame path in exact/adaptive modes and returns digest-bound frame state'),
 'atomic-canonical-save':('tested','Studio normalizes project state and saves through fsync + atomic replace without implicit render-to-project mutation'),
+'studio-media-intake':('tested','browser-selected assets are copied into project-local assets with sanitized names, source digests, and explicit canonical media/layer/audio state'),
 'dependency-free-core-package':('tested','CI wheel installs and packaged CLI/Studio/resume entry points load without Pillow installed; optional media/font compatibility remains explicit'),
 'crash-resumable-native-render':('tested','checkpoint-admitted native frame prefix can resume to the same manifest as uninterrupted render_project output'),
 'resume-identity-gate':('tested','project/media/realization drift and corrupt admitted frame bytes fail closed; unadmitted tail bytes are discarded'),
 'render-disk-budget-gate':('tested','resumable renderer conservatively checks remaining native frame storage plus reserve before continuing'),
-'gpu-backend-selection':('gap','v0.12 still executes cpu-software only; Metal/Vulkan/WebGPU/native GPU paths are not claimed'),
+'cross-python-regression':('tested','complete regression tree passes on CPython 3.11, 3.12 and 3.13 in GitHub Actions'),
+'gpu-backend-selection':('gap','v0.13 still executes cpu-software only; Metal/Vulkan/WebGPU/native GPU paths are not claimed'),
 'natural-language-directing':('gap','bounded direct/style prompts are native, but unrestricted free-form semantic language still requires an explicit translator/interpretation boundary'),
 'weighted-3d-skinning':('gap','recovered source has rig2d and morph targets but no recovered/tested weighted 3D skin deformation path'),
 'arbitrary-self-modification':('gap','growth remains bounded; no arbitrary self-write authority'),
 }
 
 def capability_summary()->dict[str,Any]:
-    return {'schema':'axm.framestate.capability-map/v0.12','capabilities':{k:{'status':v[0],'evidence':v[1]} for k,v in CAPABILITIES.items()}}
+    return {'schema':'axm.framestate.capability-map/v0.13','capabilities':{k:{'status':v[0],'evidence':v[1]} for k,v in CAPABILITIES.items()}}
 
 def analyze_requirements(required:list[str])->dict[str,Any]:
     rows=[];ready=True
