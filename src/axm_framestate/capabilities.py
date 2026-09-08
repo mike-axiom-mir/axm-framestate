@@ -37,6 +37,8 @@ CAPABILITIES={
 'visual-fidelity-scaling':('tested','machine tiers vary internal sampling and texture filtering separately from scene/detail density'),
 'cast-shadows':('rendered','deterministic directional screen-space shadow projection'),
 'skeletal-animation':('rendered','hierarchical rig2d runtime'),
+'weighted-3d-skinning':('tested','explicit 3D bone rig + 1..4 milli-weight influences deform OBJ vertices before projection; weights fail closed unless each weighted vertex sums to 1000'),
+'weighted-skinning-receipts':('tested','frame state exposes stable skin-state identity and per-frame bone-pose digest, weighted vertex count, bone count and algorithm identity'),
 'morph-target-animation':('rendered','vertex interpolation between compatible meshes'),
 'nested-compositions':('rendered','FrameState project as visual child with child lineage'),
 'nested-audio':('rendered','child FrameState audio can enter parent mix with lineage'),
@@ -68,19 +70,20 @@ CAPABILITIES={
 'actual-renderer-studio-preview':('tested','Studio preview calls the native FrameState render_frame path in exact/adaptive modes and returns digest-bound frame state'),
 'atomic-canonical-save':('tested','Studio normalizes project state and saves through fsync + atomic replace without implicit render-to-project mutation'),
 'studio-media-intake':('tested','browser-selected assets are copied into project-local assets with sanitized names, source digests, and explicit canonical media/layer/audio state'),
-'dependency-free-core-package':('tested','CI wheel installs and packaged CLI/Studio/resume entry points load without Pillow installed; optional media/font compatibility remains explicit'),
+'dependency-free-core-package':('tested','CI wheel installs and packaged CLI/Studio/resume/portable entry points load without Pillow installed; optional media/font compatibility remains explicit'),
+'portable-desktop-application':('tested','single-file frozen FrameState application embeds Python/native core + Studio resources and smoke-passes on Linux, Windows and macOS'),
+'portable-build-receipts':('tested','three-OS portable workflow records SHA-256, size, runner platform and Python version beside each frozen application artifact'),
 'crash-resumable-native-render':('tested','checkpoint-admitted native frame prefix can resume to the same manifest as uninterrupted render_project output'),
 'resume-identity-gate':('tested','project/media/realization drift and corrupt admitted frame bytes fail closed; unadmitted tail bytes are discarded'),
 'render-disk-budget-gate':('tested','resumable renderer conservatively checks remaining native frame storage plus reserve before continuing'),
-'cross-python-regression':('tested','complete regression tree passes on CPython 3.11, 3.12 and 3.13 in GitHub Actions'),
-'gpu-backend-selection':('gap','v0.13 still executes cpu-software only; Metal/Vulkan/WebGPU/native GPU paths are not claimed'),
+'cross-python-regression':('tested','67-test complete regression tree passes on CPython 3.11, 3.12 and 3.13 in GitHub Actions'),
+'gpu-backend-selection':('gap','v0.15 still executes canonical frame realization through cpu-software only; no real GPU raster backend is claimed yet'),
 'natural-language-directing':('gap','bounded direct/style prompts are native, but unrestricted free-form semantic language still requires an explicit translator/interpretation boundary'),
-'weighted-3d-skinning':('gap','recovered source has rig2d and morph targets but no recovered/tested weighted 3D skin deformation path'),
 'arbitrary-self-modification':('gap','growth remains bounded; no arbitrary self-write authority'),
 }
 
 def capability_summary()->dict[str,Any]:
-    return {'schema':'axm.framestate.capability-map/v0.13','capabilities':{k:{'status':v[0],'evidence':v[1]} for k,v in CAPABILITIES.items()}}
+    return {'schema':'axm.framestate.capability-map/v0.15','capabilities':{k:{'status':v[0],'evidence':v[1]} for k,v in CAPABILITIES.items()}}
 
 def analyze_requirements(required:list[str])->dict[str,Any]:
     rows=[];ready=True
