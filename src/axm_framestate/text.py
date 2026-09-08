@@ -1,7 +1,6 @@
 from __future__ import annotations
 from pathlib import Path
 from typing import Any
-from PIL import Image, ImageDraw, ImageFont, features
 from .canonical import file_digest
 
 # 5x7 uppercase bitmap fallback. Unknown glyphs become boxed marks rather than silence.
@@ -33,6 +32,10 @@ def bitmap_text(text:str,scale:int=1,color=(255,255,255),bg=None,padding:int=0)-
     return w,h,bytes(body),{'boundary':'native-5x7-bitmap','glyph_count':sum(len(g) for g in glyph_lines),'line_count':len(lines)}
 
 def shaped_text(text:str,font_path:Path,font_size:int,color=(255,255,255),bg=None,padding:int=0)->tuple[int,int,bytes,dict[str,Any]]:
+    try:
+        from PIL import Image,ImageDraw,ImageFont,features
+    except ImportError as exc:
+        raise RuntimeError('Pillow/FreeType is required only for supplied-font Unicode shaping') from exc
     font=ImageFont.truetype(str(font_path),font_size)
     dummy=Image.new('RGBA',(8,8),(0,0,0,0)); d=ImageDraw.Draw(dummy)
     spacing=max(1,font_size//5)
