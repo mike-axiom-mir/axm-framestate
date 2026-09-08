@@ -1,0 +1,29 @@
+{
+  "schema":"axm.framestate.project/v0.2",
+  "id":"mixed-media-lab",
+  "title":"FrameState Mixed Media Lab",
+  "canvas":{"width":96,"height":64,"fps":12},
+  "duration_frames":48,
+  "background":[6,8,14],
+  "camera":{"x":{"from":0,"to":0},"y":{"from":0,"to":0},"zoom_milli":{"keyframes":[{"frame":0,"value":1000,"easing":"smoothstep"},{"frame":23,"value":1200,"easing":"smoothstep"},{"frame":47,"value":1000,"easing":"linear"}]}},
+  "media":[
+    {"id":"still","kind":"image","path":"examples/media/still.ppm"},
+    {"id":"clip","kind":"video","path":"examples/media/clip.mp4"}
+  ],
+  "layers":[
+    {"id":"still-layer","kind":"image","media_id":"still","z":1,"start_frame":0,"end_frame":26,"x":{"from":28,"to":40,"easing":"smoothstep"},"y":{"from":32,"to":32},"w":{"from":52,"to":60},"h":{"from":40,"to":46},"fade_in_frames":4,"fade_out_frames":5,"blend_mode":"normal"},
+    {"id":"video-layer","kind":"video","media_id":"clip","z":2,"start_frame":20,"end_frame":48,"x":{"from":62,"to":48,"easing":"smoothstep"},"y":{"from":32,"to":32},"w":{"from":58,"to":78},"h":{"from":44,"to":58},"source_start_frame":0,"playback_milli":1000,"loop":true,"fade_in_frames":6,"blend_mode":"screen"},
+    {"id":"title","kind":"text","z":5,"start_frame":0,"end_frame":48,"text":"FRAMESTATE V0.2","scale":1,"x":{"from":48,"to":48},"y":{"from":8,"to":8},"color":[255,240,130],"background_color":[10,12,20],"padding":2,"fade_in_frames":3,"fade_out_frames":4}
+  ],
+  "captions":[
+    {"id":"c1","start_frame":4,"end_frame":20,"text":"IMAGES + TEXT + AUDIO","scale":1,"position":"bottom"},
+    {"id":"c2","start_frame":22,"end_frame":46,"text":"VIDEO + COMPOSITING + CAPTIONS","scale":1,"position":"bottom"}
+  ],
+  "audio":[
+    {"id":"bed","kind":"tone","start_frame":0,"end_frame":48,"frequency_hz":110,"gain_milli":50},
+    {"id":"imported","kind":"file","start_frame":8,"end_frame":44,"path":"examples/media/pulse.wav","gain_milli":500,"source_start_frame":0,"loop":true}
+  ],
+  "effects":[],
+  "markers":[{"frame":0,"label":"OPEN","kind":"scene"},{"frame":20,"label":"MEDIA CROSSOVER","kind":"cut"}],
+  "metadata":{"purpose":"exercise v0.2 mixed-media compositor"}
+}

@@ -1,0 +1,79 @@
+from __future__ import annotations
+from typing import Any
+
+CAPABILITIES={
+'canonical-project-state':('executable','closed normalized project state + digest'),
+'2d-procedural-shapes':('rendered','rectangles/circles render to exact PPM'),
+'procedural-particles':('rendered','seeded deterministic particle field'),
+'transform-animation':('rendered','integer scalar/from-to/keyframe tracks'),
+'multi-keyframe-animation':('rendered','ordered integer keyframe curves'),
+'camera-animation':('rendered','camera x/y/zoom sampled into frame state'),
+'image-sprite-import':('external-boundary','input digest + Pillow conforming evidence'),
+'video-clip-import':('external-boundary','input digest + FFmpeg-conformed frame evidence'),
+'video-time-remap':('rendered','speed/reverse/freeze/source-frame selection'),
+'video-compositor':('rendered','normal/add/multiply/screen, opacity, rotation, wipes'),
+'masks-chroma':('rendered','image masks and chroma threshold in compositor'),
+'text-rendering':('rendered','native 5x7 fallback plus supplied-font boundary'),
+'unicode-font-shaping':('external-boundary','supplied font digest + Pillow/FreeType runtime evidence'),
+'captions-subtitles':('rendered','burned captions + exact WebVTT export'),
+'procedural-tone-audio':('rendered','48k tone synthesis'),
+'external-audio-import':('external-boundary','FFmpeg decode source/PCM receipts'),
+'audio-mixing':('rendered','timeline mixing with gain automation'),
+'stereo-pan':('rendered','deterministic per-event pan/gain into stereo WAV'),
+'speech-synthesis':('tested','native deterministic speech is default for v0.5 projects; legacy eSpeak remains optional'),
+'native-speech-synthesis':('tested','native fixed-point/table oscillator + rule/phoneme formant synthesis emits PCM without a speech engine'),
+'speech-phoneme-state':('tested','text expands into inspectable pronunciation/phoneme timing state with exact digest lineage'),
+'speech-repeat-verification':('tested','same text/voice/rate reproduces the same native PCM and speech receipt'),
+'human-intelligible-native-speech':('gap','native waveform path is real but human listening feedback found the v0.8 proof unintelligible as words'),
+'external-speech-adapter':('external-boundary','legacy/explicit eSpeak path remains available and receipted when selected'),
+'effect-organs':('executable','detached effect forge/adoption path'),
+'pixel-program-effects':('executable','bounded effect stack language, no eval'),
+'3d-scene-rendering':('rendered','fixed-point primitive/mesh projection + triangle raster'),
+'mesh-import':('rendered','native OBJ v/vt/f parser'),
+'uv-texture-mapping':('rendered','nearest/bilinear UV texture sampling on triangles under explicit realization contract'),
+'deterministic-supersampling':('tested','adaptive realization can render transient 2x/3x internal samples and box-resolve to unchanged canonical canvas'),
+'visual-fidelity-scaling':('tested','machine tiers vary internal sampling and texture filtering separately from scene/detail density'),
+'cast-shadows':('rendered','deterministic directional screen-space shadow projection'),
+'skeletal-animation':('rendered','hierarchical rig2d runtime'),
+'morph-target-animation':('rendered','vertex interpolation between compatible meshes'),
+'nested-compositions':('rendered','FrameState project as visual child with child lineage'),
+'nested-audio':('rendered','child FrameState audio can enter parent mix with lineage'),
+'shot-plan-compiler':('executable','relative shots compile into one canonical project'),
+'creative-brief-compiler':('executable','high-level beats/style/media compile into canonical shot plan and project'),
+'shot-recipe-organs':('executable','detached reusable shot templates can be replay-tested and adopted behind four-root + recovery gate'),
+'shot-manager':('executable','markers derive shot spans'),
+'storyboard-generator':('rendered','representative actual rendered frames + digest lineage'),
+'render-queue':('executable','batch project rendering with queue receipt'),
+'frame-analysis':('executable','non-mutating frame color/delta analysis and cut proposals'),
+'mp4-assembly':('external-boundary','FFmpeg profile encode, version/output digest'),
+'repeat-verification':('tested','second full render compares project/media/frame/audio truth'),
+'mechanical-video-review':('executable','bounded framing/audio/camera checks'),
+'rehearsal-iteration':('tested','candidate render -> mechanical evidence -> bounded delta -> replay -> compare -> accept/hold loop'),
+'deterministic-quality-loop':('tested','quality path can iterate evidence-backed construction before final output without hidden artistic scoring'),
+'bounded-prompt-compiler':('tested','prompt text compiles into explicit native operations with a prompt-plan receipt'),
+'style-prompt-bundles':('tested','versioned cinematic/cleaner/documentary/warm/cool-color bundles map to inspectable state operations'),
+'direct-edit-prompts':('tested','bounded title/audio/caption/footage instructions compile into native state deltas'),
+'prompt-ambiguity-hold':('tested','ambiguous semantic terms remain visible and do not silently mutate project state'),
+'prompt-rehearsal-bridge':('tested','prompt-applied candidate state can enter deterministic rehearsal before final render'),
+'prompt-repeat-verification':('tested','same project + same prompt produces stable plan/candidate state and repeat-verifiable final output'),
+'daily-recovery':('executable','whole-body snapshot before supported live adoption'),
+'machine-capability-probe':('tested','bounded host probe records cores/memory and executable dependency/backend facts without person/device identity fingerprinting'),
+'adaptive-realization-planner':('tested','canonical project + machine capabilities + user policy compile into deterministic render contract'),
+'expression-degradation-receipts':('tested','particle/shadow/effect reductions are explicit deltas while canonical project digest remains unchanged'),
+'user-realization-policy':('tested','exact/adaptive/performance-first policy and fidelity/detail bounds outrank automatic optimization'),
+'adaptive-render-repeat-verification':('tested','same canonical state + machine capability state + policy reproduces the same realization contract, fidelity choice and native frames'),
+'gpu-backend-selection':('gap','v0.10 still executes cpu-software only; Metal/Vulkan/WebGPU/native GPU paths are not claimed'),
+'natural-language-directing':('gap','bounded direct/style prompts are native, but unrestricted free-form semantic language still requires an explicit translator/interpretation boundary'),
+'arbitrary-self-modification':('gap','growth remains bounded; no arbitrary self-write authority'),
+}
+
+def capability_summary()->dict[str,Any]:
+    return {'schema':'axm.framestate.capability-map/v0.10','capabilities':{k:{'status':v[0],'evidence':v[1]} for k,v in CAPABILITIES.items()}}
+
+def analyze_requirements(required:list[str])->dict[str,Any]:
+    rows=[];ready=True
+    for cap in required:
+        if cap not in CAPABILITIES: rows.append({'capability':cap,'status':'unknown','evidence':'not present in current capability map'});ready=False
+        else:
+            s,e=CAPABILITIES[cap];rows.append({'capability':cap,'status':s,'evidence':e});ready &= s!='gap'
+    return {'ready':bool(ready),'requirements':rows,'smallest_visible_gaps':[r['capability'] for r in rows if r['status'] in {'gap','unknown'}]}

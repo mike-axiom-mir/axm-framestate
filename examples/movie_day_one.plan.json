@@ -1,0 +1,64 @@
+{
+  "schema":"axm.framestate.shot-plan/v0.1",
+  "id":"movie-day-one",
+  "title":"FrameState Day One",
+  "canvas":{"width":320,"height":180,"fps":12},
+  "background":[5,8,18],
+  "media":[
+    {"id":"still","kind":"image","path":"examples/media/still.ppm"},
+    {"id":"mask","kind":"image","path":"examples/media/mask.ppm"},
+    {"id":"green","kind":"image","path":"examples/media/green_card.ppm"},
+    {"id":"clip","kind":"video","path":"examples/media/clip.mp4"},
+    {"id":"texture","kind":"image","path":"examples/media/texture.ppm"},
+    {"id":"pyramid","kind":"mesh","path":"examples/media/pyramid.obj"}
+  ],
+  "effects":[],
+  "shots":[
+    {
+      "id":"opener","label":"OPENER","duration_frames":36,
+      "camera":{"zoom_milli":{"from":900,"to":1050,"easing":"smoothstep"}},
+      "layers":[
+        {"id":"field","kind":"particles","z":1,"x":160,"y":150,"count":70,"seed":41,"spread_x":150,"spread_y":35,"speed":2,"size":2,"color":[70,170,255]},
+        {"id":"title","kind":"text","z":5,"x":160,"y":72,"text":"FRAMESTATE","scale":5,"color":[245,248,255],"background_color":[5,8,18],"padding":4,"fade_in_frames":8},
+        {"id":"sub","kind":"text","z":6,"x":160,"y":118,"text":"VIDEO IS STATE THROUGH TIME","scale":2,"color":[120,220,255],"fade_in_frames":12}
+      ],
+      "captions":[{"id":"cap","start_frame":5,"end_frame":31,"text":"A STANDALONE VIDEO MACHINE","scale":2,"position":"bottom"}],
+      "audio":[{"id":"bed","kind":"tone","frequency_hz":82,"gain_milli":{"from":0,"to":120,"easing":"smoothstep"},"pan_milli":-250}]
+    },
+    {
+      "id":"media","label":"MIXED MEDIA","duration_frames":48,
+      "camera":{"x":{"from":0,"to":8,"easing":"smoothstep"},"zoom_milli":{"from":1000,"to":1120,"easing":"smoothstep"}},
+      "layers":[
+        {"id":"still","kind":"image","media_id":"still","z":1,"x":{"from":85,"to":105},"y":90,"w":150,"h":100,"mask_media_id":"mask","rotation_mdeg":{"from":-6000,"to":5000},"fade_in_frames":5},
+        {"id":"clip","kind":"video","media_id":"clip","z":2,"x":{"from":235,"to":210},"y":88,"w":150,"h":100,"source_start_frame":0,"playback_milli":1000,"loop":true,"blend_mode":"screen","fade_in_frames":7},
+        {"id":"keyed","kind":"image","media_id":"green","z":3,"x":160,"y":90,"w":110,"h":70,"chroma_key":[20,230,30],"chroma_tolerance":12,"wipe_milli":{"from":0,"to":1000,"easing":"smoothstep"}},
+        {"id":"label","kind":"text","z":6,"x":160,"y":25,"text":"MEDIA + MASKS + CHROMA + VIDEO","scale":2,"color":[255,230,120]}
+      ],
+      "captions":[{"id":"cap","start_frame":3,"end_frame":45,"text":"IMPORT. COMPOSE. REMAP. RECEIPT.","scale":2,"position":"bottom"}],
+      "audio":[{"id":"pulse","kind":"file","path":"examples/media/pulse.wav","gain_milli":{"from":250,"to":500,"easing":"smoothstep"},"pan_milli":{"from":-500,"to":500},"loop":true}]
+    },
+    {
+      "id":"3d","label":"3D","duration_frames":48,
+      "camera":{"zoom_milli":{"from":1000,"to":1180,"easing":"smoothstep"}},
+      "layers":[
+        {"id":"mesh","kind":"mesh3d","media_id":"pyramid","texture_media_id":"texture","shadow":true,"z":2,"x":0,"y":5,"depth":{"from":250,"to":190,"easing":"smoothstep"},"size":{"from":100,"to":125},"rot_x_mdeg":{"from":-12000,"to":30000},"rot_y_mdeg":{"from":0,"to":280000},"rot_z_mdeg":{"from":0,"to":25000},"color":[255,150,90]},
+        {"id":"label","kind":"text","z":6,"x":160,"y":24,"text":"FIXED-STATE 3D + UV + SHADOWS","scale":2,"color":[180,220,255]}
+      ],
+      "captions":[{"id":"cap","start_frame":4,"end_frame":44,"text":"NO GAME ENGINE REQUIRED","scale":2,"position":"bottom"}],
+      "audio":[{"id":"tone","kind":"tone","frequency_hz":120,"gain_milli":90,"pan_milli":{"from":600,"to":-600}}]
+    },
+    {
+      "id":"finale","label":"FINALE","duration_frames":48,
+      "camera":{"zoom_milli":{"from":1120,"to":900,"easing":"smoothstep"}},
+      "layers":[
+        {"id":"rig","kind":"rig2d","z":2,"x":160,"y":104,"color":[255,120,170],"bone_width":4,
+          "rig":{"bones":[{"id":"body","x":0,"y":20,"length":40,"angle_mdeg":-90000},{"id":"arm","parent":"body","length":35,"angle_mdeg":-90000},{"id":"hand","parent":"arm","length":24,"angle_mdeg":0}]},
+          "clip":{"bones":{"arm":{"from":-45000,"to":70000,"easing":"smoothstep"},"hand":{"from":-50000,"to":90000,"easing":"smoothstep"}}}},
+        {"id":"title","kind":"text","z":6,"x":160,"y":50,"text":"ONE BODY. MANY VIDEO FORMS.","scale":3,"color":[255,245,210],"fade_in_frames":5}
+      ],
+      "captions":[{"id":"cap","start_frame":4,"end_frame":44,"text":"TRUTH. AGENCY. CONTINUITY. WISDOM BEFORE SPEED.","scale":1,"position":"bottom"}],
+      "audio":[{"id":"voice","kind":"speech","text":"Frame State can now compose graphics, footage, sound, captions, animation, and three D scenes in one inspectable timeline.","voice":"en","rate_wpm":155,"gain_milli":850,"pan_milli":0}]
+    }
+  ],
+  "metadata":{"purpose":"end-of-day real video proof"}
+}

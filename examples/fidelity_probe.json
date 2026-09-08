@@ -1,0 +1,14 @@
+{
+  "schema":"axm.framestate.project/v0.5",
+  "id":"fidelity-probe",
+  "title":"Fidelity Probe",
+  "canvas":{"width":96,"height":64,"fps":12},
+  "duration_frames":1,
+  "background":[0,0,0],
+  "camera":{"x":0,"y":0,"zoom_milli":1000},
+  "layers":[
+    {"id":"disc","kind":"circle","z":0,"x":47,"y":31,"radius":17,"color":[255,255,255]}
+  ],
+  "captions":[],"audio":[],"effects":[],"markers":[],
+  "metadata":{"purpose":"mechanically prove supersampled edge fidelity without changing canonical scene"}
+}

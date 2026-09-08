@@ -1,0 +1,54 @@
+{
+  "schema": "axm.framestate.project/v0.1",
+  "id": "first-light",
+  "title": "FrameState First Light",
+  "canvas": {"width": 160, "height": 90, "fps": 24},
+  "duration_frames": 72,
+  "background": [5, 7, 12],
+  "camera": {
+    "x": {"from": 0, "to": 4, "easing": "smoothstep"},
+    "y": {"from": 0, "to": -2, "easing": "smoothstep"},
+    "zoom_milli": {"from": 1000, "to": 1080, "easing": "smoothstep"}
+  },
+  "layers": [
+    {
+      "id": "horizon",
+      "kind": "rect",
+      "z": 0,
+      "color": [22, 38, 55],
+      "x": {"from": 80, "to": 80},
+      "y": {"from": 68, "to": 68},
+      "w": {"from": 190, "to": 190},
+      "h": {"from": 44, "to": 44}
+    },
+    {
+      "id": "sun",
+      "kind": "circle",
+      "z": 1,
+      "color": [255, 173, 74],
+      "x": {"from": 22, "to": 126, "easing": "smoothstep"},
+      "y": {"from": 66, "to": 24, "easing": "smoothstep"},
+      "radius": {"from": 4, "to": 11, "easing": "smoothstep"},
+      "opacity_milli": {"from": 250, "to": 1000, "easing": "smoothstep"}
+    },
+    {
+      "id": "signal",
+      "kind": "rect",
+      "z": 2,
+      "start_frame": 18,
+      "end_frame": 72,
+      "color": [78, 225, 255],
+      "x": {"from": 35, "to": 120},
+      "y": {"from": 47, "to": 47},
+      "w": {"from": 5, "to": 35, "easing": "smoothstep"},
+      "h": {"from": 3, "to": 3},
+      "opacity_milli": {"from": 0, "to": 900, "easing": "smoothstep"}
+    }
+  ],
+  "audio": [
+    {"id": "rise", "kind": "tone", "start_frame": 0, "end_frame": 36, "frequency_hz": 220, "gain_milli": 55},
+    {"id": "answer", "kind": "tone", "start_frame": 24, "end_frame": 72, "frequency_hz": 330, "gain_milli": 45}
+  ],
+  "effects": ["builtin:scanline@1"],
+  "metadata": {"purpose": "First executable deterministic FrameState proof"}
+}

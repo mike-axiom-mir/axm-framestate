@@ -1,0 +1,69 @@
+{
+  "schema": "axm.framestate.creative-brief/v0.1",
+  "id": "brief-to-film",
+  "title": "FrameState Director Proof",
+  "canvas": {
+    "width": 320,
+    "height": 180,
+    "fps": 12
+  },
+  "duration_frames": 144,
+  "style": "cinematic",
+  "format": "launch-explainer",
+  "media": [
+    {
+      "id": "still",
+      "kind": "image",
+      "path": "examples/media/still.ppm"
+    },
+    {
+      "id": "clip",
+      "kind": "video",
+      "path": "examples/media/clip.mp4"
+    },
+    {
+      "id": "pyramid",
+      "kind": "mesh",
+      "path": "examples/media/pyramid.obj"
+    }
+  ],
+  "beats": [
+    {
+      "kind": "title",
+      "text": "FRAMESTATE DIRECTOR",
+      "weight": 2,
+      "caption": "A creative brief becomes a film"
+    },
+    {
+      "kind": "media",
+      "text": "USE REAL FOOTAGE",
+      "media_id": "clip",
+      "weight": 2,
+      "narration": "Frame State can combine a high level creative brief with real media and deterministic construction."
+    },
+    {
+      "kind": "message",
+      "text": "REUSABLE VIDEO GRAMMAR",
+      "weight": 1,
+      "caption": "Known patterns become reusable vocabulary"
+    },
+    {
+      "kind": "reveal",
+      "text": "THE SAME BODY BUILDS 3D",
+      "weight": 2
+    },
+    {
+      "kind": "closing",
+      "text": "BRIEF TO VIDEO",
+      "weight": 1
+    }
+  ],
+  "bed_tone": {
+    "frequency_hz": 82,
+    "gain_milli": 22
+  },
+  "effects": [],
+  "metadata": {
+    "purpose": "prove high-level director compiler"
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "schema": "axm.framestate.prompt/v0.1",
+  "id": "ambiguous-cooler",
+  "text": "Make it cooler and more dramatic.",
+  "allow_classes": ["direct", "style", "semantic"],
+  "ambiguity_policy": "hold",
+  "scope": "all"
+}

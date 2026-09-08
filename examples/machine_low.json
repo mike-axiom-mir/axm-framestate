@@ -1,0 +1,1 @@
+{"schema":"axm.framestate.machine-capabilities/v0.1","id":"fixture-low","logical_cores":2,"memory_mb":2048,"ffmpeg_available":false,"espeak_available":false,"pillow_available":false,"render_backends":["cpu-software"],"platform":"fixture"}

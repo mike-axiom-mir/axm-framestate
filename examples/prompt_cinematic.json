@@ -1,0 +1,9 @@
+{
+  "schema": "axm.framestate.prompt/v0.1",
+  "id": "cinematic-cleaner",
+  "text": "Make it cinematic and cleaner, and make it more readable.",
+  "allow_classes": ["direct", "style", "semantic"],
+  "ambiguity_policy": "hold",
+  "scope": "all",
+  "metadata": {"purpose": "prove bounded style prompt compilation"}
+}

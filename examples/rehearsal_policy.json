@@ -1,0 +1,13 @@
+{
+  "schema": "axm.framestate.rehearsal-policy/v0.1",
+  "max_passes": 6,
+  "target_declared_audio_gain_milli": 1600,
+  "max_caption_words_per_second_milli": 3500,
+  "auto_accept_codes": [
+    "AUDIO_HEADROOM",
+    "CAPTION_READABILITY",
+    "FADE_BUDGET",
+    "TEXT_FIT"
+  ],
+  "target_pcm_peak_abs": 30000
+}

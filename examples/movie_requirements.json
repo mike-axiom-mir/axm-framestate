@@ -1,0 +1,12 @@
+{
+  "required": [
+    "canonical-project-state",
+    "2d-procedural-shapes",
+    "camera-animation",
+    "effect-organs",
+    "mp4-assembly",
+    "captions-subtitles",
+    "external-audio-import",
+    "3d-scene-rendering"
+  ]
+}

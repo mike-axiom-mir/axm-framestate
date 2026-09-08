@@ -1,0 +1,25 @@
+{
+  "schema":"axm.framestate.project/v0.4",
+  "id":"rehearsal-challenge",
+  "title":"Rehearsal Challenge",
+  "canvas":{"width":160,"height":90,"fps":12},
+  "duration_frames":48,
+  "background":[7,9,16],
+  "camera":{"x":0,"y":0,"zoom_milli":1000},
+  "media":[],
+  "layers":[
+    {"id":"card","kind":"rect","z":1,"start_frame":0,"end_frame":24,"x":80,"y":45,"w":110,"h":44,"color":[60,150,255],"fade_in_frames":18,"fade_out_frames":18},
+    {"id":"title","kind":"text","z":3,"start_frame":0,"end_frame":48,"x":80,"y":20,"text":"REHEARSE BEFORE FINAL","scale":1,"color":[255,255,255]}
+  ],
+  "captions":[
+    {"id":"fast-caption","start_frame":0,"end_frame":6,"text":"THIS CAPTION NEEDS MORE READING TIME","position":"bottom","scale":1},
+    {"id":"next-caption","start_frame":24,"end_frame":42,"text":"SECOND BEAT","position":"bottom","scale":1}
+  ],
+  "audio":[
+    {"id":"bed-a","kind":"tone","start_frame":0,"end_frame":48,"frequency_hz":82,"gain_milli":1200,"pan_milli":-250},
+    {"id":"bed-b","kind":"tone","start_frame":0,"end_frame":48,"frequency_hz":123,"gain_milli":1200,"pan_milli":250}
+  ],
+  "effects":[],
+  "markers":[{"frame":0,"label":"CHALLENGE","kind":"shot"},{"frame":24,"label":"SECOND","kind":"shot"}],
+  "metadata":{"purpose":"prove deterministic multi-pass rehearsal repairs mechanical quality debt before final output"}
+}
