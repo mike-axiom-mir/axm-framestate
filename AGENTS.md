@@ -58,3 +58,20 @@ Quality is often the accumulated result of many small correct details, not one l
 - Do not fragment working systems merely for ideology. Add granularity where it creates useful control, reuse, diagnosis, repair, or quality.
 
 **Working rule:** thousands of small good details and capabilities in the right places can improve a result more than one simple big upgrade.
+
+## Canonical state and adaptive realization principle
+
+FrameState is an explicit proof case for separating **project truth** from **rendered expression**.
+
+- Canonical project/timeline/scene state, timing meaning, content identity, captions/content semantics, and deterministic receipts remain authoritative.
+- Rendered pixels, codec outputs, preview quality, audio synthesis paths, UI skins, and device-specific manifestations are realizations of that state, not the state itself.
+- Preserve expression intent separately where needed: cinematic intent, readability, atmosphere, motion weight, sound intent, detail semantics, hierarchy, and other qualities that should survive a cheaper render path.
+- Prefer one FrameState body with multiple bounded realization contracts over separate mobile/desktop/lite/ultra project truths.
+- Choose realization from canonical state + expression intent + measured machine capabilities + user policy; adaptation may happen at render time or dynamically where the runtime can do so without changing meaning.
+- A weak machine should receive cheaper expression, **not weaker project truth**. Timing, scene identity, captions/content, causal meaning, and other non-degradable invariants must remain intact.
+- Never let a low-detail render, compressed output, proxy, cache, or preview overwrite richer canonical project state merely because it was produced successfully. Render output is evidence/projection, not authority.
+- A richer realization may express more of existing state/intent; it must not invent canonical facts or silently change timing/content simply to appear more cinematic.
+- Build realization alternatives as bounded capabilities: resolution, geometry/detail, shading, particles, simulation passes, post-processing, audio richness, preview fidelity, and analogous render choices.
+- Apply the split only where representation can honestly remain subordinate to project truth.
+
+**Working rule:** degrade expression, never truth; upgrade expression, never invent truth. Same FrameState project, different valid manifestations.
