@@ -1,4 +1,4 @@
-# FrameState v0.9 verification
+# FrameState v0.10 verification
 
 Hard verification for the Adaptive Realization Fabric checkpoint:
 
@@ -6,8 +6,8 @@ Hard verification for the Adaptive Realization Fabric checkpoint:
 - prompt group -> **5/5 PASS**;
 - rehearsal group -> **4/4 PASS**;
 - native-speech group -> **5/5 PASS**;
-- adaptive-realization group -> **9/9 PASS**;
-- aggregate checkpoint -> **40/40 PASS across five test groups**.
+- adaptive-realization/fidelity group -> **13/13 PASS**;
+- aggregate checkpoint -> **44/44 PASS across five test groups**.
 
 ## Adaptive realization evidence
 
@@ -47,7 +47,7 @@ Verified properties:
 
 ## Capability-probe privacy boundary
 
-The v0.9 host probe reads bounded execution facts only. It does not collect user identity, usernames, home paths, network identifiers, serial/device IDs or claim unimplemented GPU backends.
+The v0.10 host probe reads bounded execution facts only. It does not collect user identity, usernames, home paths, network identifiers, serial/device IDs or claim unimplemented GPU backends.
 
 ## Native speech truth correction
 
@@ -55,4 +55,19 @@ The v0.8 deterministic speech path remains mechanically verified, but human list
 
 ## Truth boundary
 
-v0.9 proves deterministic adaptive planning and bounded CPU-software realization, not Metal/Vulkan/WebGPU execution, semantic scene simplification, cross-device pixel identity or adaptive canonical truth. MP4/H.264 remains an FFmpeg compatibility boundary. Different realization tiers may produce different pixels while preserving the same canonical project state.
+v0.10 proves deterministic adaptive planning and bounded CPU-software realization, not Metal/Vulkan/WebGPU execution, semantic scene simplification, cross-device pixel identity or adaptive canonical truth. MP4/H.264 remains an FFmpeg compatibility boundary. Different realization tiers may produce different pixels while preserving the same canonical project state.
+
+## Fidelity proof
+
+Input: `examples/fidelity_probe.json`
+
+- one canonical white circle on black;
+- no particles, captions, effects, extra props, or scene-detail difference;
+- low fixture -> 1x internal sampling / nearest filter;
+- high fixture -> 2x internal sampling / bilinear filter;
+- low output contains zero intermediate grayscale edge pixels;
+- high output contains deterministic intermediate edge pixels from partial pixel coverage;
+- visible canonical layer state is identical between the two manifests;
+- canonical project digest remains identical.
+
+This verifies actual raster-fidelity scaling rather than merely adding detail.

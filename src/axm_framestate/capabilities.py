@@ -24,13 +24,15 @@ CAPABILITIES={
 'native-speech-synthesis':('tested','native fixed-point/table oscillator + rule/phoneme formant synthesis emits PCM without a speech engine'),
 'speech-phoneme-state':('tested','text expands into inspectable pronunciation/phoneme timing state with exact digest lineage'),
 'speech-repeat-verification':('tested','same text/voice/rate reproduces the same native PCM and speech receipt'),
-'human-intelligible-native-speech':('gap','v0.8 native waveform path is real but human listening feedback found the proof not intelligible as words; intelligibility/naturalness remains unsolved'),
+'human-intelligible-native-speech':('gap','native waveform path is real but human listening feedback found the v0.8 proof unintelligible as words'),
 'external-speech-adapter':('external-boundary','legacy/explicit eSpeak path remains available and receipted when selected'),
 'effect-organs':('executable','detached effect forge/adoption path'),
 'pixel-program-effects':('executable','bounded effect stack language, no eval'),
 '3d-scene-rendering':('rendered','fixed-point primitive/mesh projection + triangle raster'),
 'mesh-import':('rendered','native OBJ v/vt/f parser'),
-'uv-texture-mapping':('rendered','nearest UV texture sampling on triangles'),
+'uv-texture-mapping':('rendered','nearest/bilinear UV texture sampling on triangles under explicit realization contract'),
+'deterministic-supersampling':('tested','adaptive realization can render transient 2x/3x internal samples and box-resolve to unchanged canonical canvas'),
+'visual-fidelity-scaling':('tested','machine tiers vary internal sampling and texture filtering separately from scene/detail density'),
 'cast-shadows':('rendered','deterministic directional screen-space shadow projection'),
 'skeletal-animation':('rendered','hierarchical rig2d runtime'),
 'morph-target-animation':('rendered','vertex interpolation between compatible meshes'),
@@ -58,15 +60,15 @@ CAPABILITIES={
 'machine-capability-probe':('tested','bounded host probe records cores/memory and executable dependency/backend facts without person/device identity fingerprinting'),
 'adaptive-realization-planner':('tested','canonical project + machine capabilities + user policy compile into deterministic render contract'),
 'expression-degradation-receipts':('tested','particle/shadow/effect reductions are explicit deltas while canonical project digest remains unchanged'),
-'user-realization-policy':('tested','exact/adaptive/performance-first policy and no-degrade controls outrank automatic optimization'),
-'adaptive-render-repeat-verification':('tested','same canonical state + machine capability state + policy reproduces the same realization contract and native frames'),
-'gpu-backend-selection':('gap','v0.9 only executes cpu-software; Metal/Vulkan/WebGPU/native GPU paths are not claimed'),
+'user-realization-policy':('tested','exact/adaptive/performance-first policy and fidelity/detail bounds outrank automatic optimization'),
+'adaptive-render-repeat-verification':('tested','same canonical state + machine capability state + policy reproduces the same realization contract, fidelity choice and native frames'),
+'gpu-backend-selection':('gap','v0.10 still executes cpu-software only; Metal/Vulkan/WebGPU/native GPU paths are not claimed'),
 'natural-language-directing':('gap','bounded direct/style prompts are native, but unrestricted free-form semantic language still requires an explicit translator/interpretation boundary'),
 'arbitrary-self-modification':('gap','growth remains bounded; no arbitrary self-write authority'),
 }
 
 def capability_summary()->dict[str,Any]:
-    return {'schema':'axm.framestate.capability-map/v0.9','capabilities':{k:{'status':v[0],'evidence':v[1]} for k,v in CAPABILITIES.items()}}
+    return {'schema':'axm.framestate.capability-map/v0.10','capabilities':{k:{'status':v[0],'evidence':v[1]} for k,v in CAPABILITIES.items()}}
 
 def analyze_requirements(required:list[str])->dict[str,Any]:
     rows=[];ready=True

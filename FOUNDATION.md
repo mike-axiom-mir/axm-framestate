@@ -57,8 +57,14 @@ New v0.5 project speech defaults to FrameState native synthesis. Historical v0.4
 
 Canonical state answers **what the project is**. A realization contract answers **how this machine is allowed to express it now**. Those layers must not be silently collapsed.
 
-The v0.9 contract binds the canonical project digest, bounded machine capability state and explicit user policy. It may reduce only named expression work that FrameState actually owns. The current floor can reduce seeded particle density, omit deterministic 3D shadow work, optionally cap effect passes when the user explicitly permits it, and choose an FFmpeg compatibility export profile. It may not rewrite project timing, layer identity, captions, audio events, markers or other canonical content to satisfy a weak machine.
+The v0.10 contract binds the canonical project digest, bounded machine capability state and explicit user policy. It may reduce only named expression work that FrameState actually owns. The current floor can reduce seeded particle density, omit deterministic 3D shadow work, optionally cap effect passes when the user explicitly permits it, and choose an FFmpeg compatibility export profile. It may not rewrite project timing, layer identity, captions, audio events, markers or other canonical content to satisfy a weak machine.
 
-Machine probing is capability evidence, not person profiling. v0.9 does not collect user identity, serial/device identifiers, network identifiers or claim GPU APIs that FrameState cannot execute. Unknown capability facts degrade conservatively.
+Machine probing is capability evidence, not person profiling. v0.10 does not collect user identity, serial/device identifiers, network identifiers or claim GPU APIs that FrameState cannot execute. Unknown capability facts degrade conservatively.
 
 **Working rule:** capability may change expression. It may not silently change truth.
+
+## Detail density versus fidelity
+
+Detail density and fidelity are separate realization axes. Reducing particles or optional shadow work changes how much scene expression is computed. Supersampling and texture filtering change how cleanly the same scene is rasterized. A higher-detail image is not automatically a higher-fidelity image.
+
+FrameState v0.10 therefore keeps canonical state unchanged while allowing transient internal supersampling and filtering choices to be receipted separately from scene/detail reductions.

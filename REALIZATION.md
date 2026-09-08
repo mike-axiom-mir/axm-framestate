@@ -1,6 +1,6 @@
-# FrameState v0.9 Adaptive Realization Fabric
+# FrameState v0.10 Adaptive Realization + Fidelity Fabric
 
-FrameState v0.9 establishes an executable distinction:
+FrameState v0.10 establishes an executable distinction:
 
 `canonical project truth != realization contract != rendered output`
 
@@ -24,13 +24,13 @@ The native host probe currently records only bounded execution facts needed by t
 - platform family;
 - executable FrameState render backends.
 
-v0.9 advertises only `cpu-software`. It does not claim Metal, Vulkan, WebGPU or another GPU path merely because the host may support them.
+v0.10 advertises only `cpu-software`. It does not claim Metal, Vulkan, WebGPU or another GPU path merely because the host may support them.
 
 The probe deliberately excludes usernames, home paths, serial numbers, MAC/network identifiers, stable device IDs and other person/device fingerprinting data. Unknown memory remains `0` and is planned conservatively.
 
 ## User realization policy
 
-Schema: `axm.framestate.realization-policy/v0.1`
+Schema: `axm.framestate.realization-policy/v0.2` (v0.1 inputs remain accepted and normalize forward)
 
 Modes:
 
@@ -42,7 +42,7 @@ User policy can forbid particle reduction or shadow disabling and can set a part
 
 ## Current executable adaptive capabilities
 
-v0.9 changes only expression work already owned by FrameState:
+v0.10 changes only expression/render work already owned by FrameState:
 
 1. seeded particle density;
 2. deterministic 3D cast-shadow work;
@@ -50,6 +50,19 @@ v0.9 changes only expression work already owned by FrameState:
 4. FFmpeg export profile when compatibility assembly is requested.
 
 It does **not** change canvas truth, duration, fps, layer identity/kind/timing, caption content/timing, audio event state/timing, or markers/shot timing.
+
+
+## v0.10 fidelity axis
+
+Detail density and render fidelity are deliberately separated. The same canonical scene can now use:
+
+- `internal_sample_scale`: 1x or 2x by default tier (higher values remain user-permitted);
+- deterministic box resolve back to the unchanged canonical canvas;
+- `nearest` or deterministic integer `bilinear` texture sampling.
+
+The high-tier default uses 2x linear internal sampling, meaning four internal pixel samples per final output pixel. A dedicated circle proof has identical canonical layer state on low/high machines; low has hard binary edges, while high creates deterministic partial-coverage edge pixels. This is a fidelity change without added objects/details.
+
+Effects are applied after the supersampled scene resolves to canonical output resolution. This prevents an effect such as scanlines from silently changing spatial meaning merely because the internal raster was larger.
 
 ## Receipts and invariants
 

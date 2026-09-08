@@ -2,10 +2,22 @@
   "schema": "axm.framestate.project/v0.5",
   "id": "adaptive-realization-proof",
   "title": "Same State Different Fullness",
-  "canvas": {"width": 160, "height": 90, "fps": 12},
-  "duration_frames": 24,
-  "background": [6, 8, 14],
-  "camera": {"x": 0, "y": 0, "zoom_milli": 1000},
+  "canvas": {
+    "width": 160,
+    "height": 90,
+    "fps": 12
+  },
+  "duration_frames": 8,
+  "background": [
+    6,
+    8,
+    14
+  ],
+  "camera": {
+    "x": 0,
+    "y": 0,
+    "zoom_milli": 1000
+  },
   "layers": [
     {
       "id": "field",
@@ -19,7 +31,11 @@
       "spread_y": 70,
       "speed": 1,
       "size": 1,
-      "color": [70, 150, 210]
+      "color": [
+        70,
+        150,
+        210
+      ]
     },
     {
       "id": "hero",
@@ -29,20 +45,56 @@
       "y": 45,
       "depth": 230,
       "size": 50,
-      "rot_x_mdeg": {"from": -12000, "to": 22000, "easing": "smoothstep"},
-      "rot_y_mdeg": {"from": 0, "to": 180000, "easing": "smoothstep"},
+      "rot_x_mdeg": {
+        "from": -12000,
+        "to": 22000,
+        "easing": "smoothstep"
+      },
+      "rot_y_mdeg": {
+        "from": 0,
+        "to": 180000,
+        "easing": "smoothstep"
+      },
       "rot_z_mdeg": 8000,
       "shadow": true,
-      "color": [220, 170, 80]
+      "color": [
+        220,
+        170,
+        80
+      ]
     }
   ],
   "captions": [
-    {"id": "caption", "start_frame": 2, "end_frame": 22, "text": "SAME STATE / DIFFERENT FULLNESS", "position": "bottom", "scale": 1}
+    {
+      "id": "caption",
+      "start_frame": 1,
+      "end_frame": 7,
+      "text": "SAME STATE / DIFFERENT FULLNESS",
+      "position": "bottom",
+      "scale": 1
+    }
   ],
   "audio": [
-    {"id": "tone", "kind": "tone", "start_frame": 0, "end_frame": 24, "frequency_hz": 220, "gain_milli": 80}
+    {
+      "id": "tone",
+      "kind": "tone",
+      "start_frame": 0,
+      "end_frame": 8,
+      "frequency_hz": 220,
+      "gain_milli": 80
+    }
   ],
-  "effects": ["builtin:identity@1", "builtin:scanline@1"],
-  "markers": [{"frame": 0, "label": "proof-start"}],
-  "metadata": {"purpose": "v0.9 adaptive realization proof"}
+  "effects": [
+    "builtin:identity@1",
+    "builtin:scanline@1"
+  ],
+  "markers": [
+    {
+      "frame": 0,
+      "label": "proof-start"
+    }
+  ],
+  "metadata": {
+    "purpose": "v0.10 compact adaptive realization + fidelity proof"
+  }
 }

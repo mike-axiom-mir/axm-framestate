@@ -17,7 +17,7 @@ from .prompts import interpret_prompt,prompt_project,explain_prompt_token
 from .director import compile_plan,compile_brief
 from .canonical import normalize_project
 from .speech import write_native_wav,text_to_phonemes
-from .realization import probe_machine,normalize_machine_capabilities,normalize_realization_policy,plan_realization,verify_contract
+from .realization import probe_machine,normalize_machine_capabilities,normalize_realization_policy,plan_realization
 
 def _root(): return Path.cwd().resolve()
 def _print(v): print(json.dumps(v,indent=2,sort_keys=True,ensure_ascii=False))
@@ -90,9 +90,9 @@ def main(argv:list[str]|None=None)->int:
     elif a.command=='plan-realization':
         project=load_project(Path(a.project));machine=json.loads(Path(a.machine).read_text(encoding='utf-8')) if a.machine else probe_machine();policy=json.loads(Path(a.policy).read_text(encoding='utf-8')) if a.policy else None;_print(plan_realization(project,machine,policy))
     elif a.command=='render-adaptive':
-        project=load_project(Path(a.project));machine=json.loads(Path(a.machine).read_text(encoding='utf-8')) if a.machine else probe_machine();policy=json.loads(Path(a.policy).read_text(encoding='utf-8')) if a.policy else None;r=render_realized_with_receipt(project,Path(a.output),root,machine,policy,assemble=not a.no_assemble)
-        if a.verify_repeat:r['repeat_verification']=verify_realized_repeat(project,Path(a.output)/'repeat-verification',root,machine,policy)
-        _print(r)
+        project=load_project(Path(a.project));machine=json.loads(Path(a.machine).read_text(encoding='utf-8')) if a.machine else probe_machine();policy=json.loads(Path(a.policy).read_text(encoding='utf-8')) if a.policy else None;rec=render_realized_with_receipt(project,Path(a.output),root,machine,policy,assemble=not a.no_assemble)
+        if a.verify_repeat: rec['repeat_verification']=verify_realized_repeat(project,Path(a.output)/'repeat-proof',root,machine,policy)
+        _print(rec)
     elif a.command in {'rehearse','make'}:
         raw=json.loads(Path(a.input).read_text(encoding='utf-8'));schema=str(raw.get('schema',''))
         if schema.startswith('axm.framestate.shot-plan/'):

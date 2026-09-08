@@ -86,3 +86,9 @@ FrameState is an explicit proof case for separating **project truth** from **ren
 - Apply the split only where representation can honestly remain subordinate to project truth.
 
 **Working rule:** degrade expression, never truth; upgrade expression, never invent truth. Same FrameState project, different valid manifestations.
+
+## Detail density is not render fidelity
+
+Adding more particles, props, effects, or scene elements changes **detail density**. It does not by itself prove better rendering quality. Fidelity is a separate realization axis: sampling quality, edge coverage, texture filtering, shadow quality, lighting/material evaluation, and other work that can make the same canonical scene render more cleanly or convincingly.
+
+**Working rule:** never label 'more stuff' as higher visual fidelity. Prove fidelity with the same scene state whenever possible.

@@ -118,3 +118,20 @@ FrameState gained its first executable separation between canonical project trut
 The v0.9 floor does **not** claim Metal, Vulkan, WebGPU or other native GPU backends. `cpu-software` is the only implemented renderer. Same-state adaptive GPU realization remains future work.
 
 Human listening feedback on the v0.8 native speech proof also established a quality gap: the generated waveform was not intelligible as words to the listener. Native deterministic synthesis remains real, but human-intelligible native speech is now explicitly tracked as unsolved.
+
+## v0.10 Render Fidelity Scaling
+
+FrameState separated detail density from actual render fidelity:
+
+- stronger CPU-software tiers can use deterministic internal supersampling;
+- current high default is 2x linear sampling (4 internal samples per output pixel);
+- supersampled output resolves back to the unchanged canonical canvas with deterministic box filtering;
+- deterministic bilinear sampling is available for richer image/mesh texture realization;
+- effects execute at canonical output resolution after resolve, preserving their coordinate semantics;
+- fidelity choices are receipted separately from particle/shadow/effect detail reductions;
+- user policy can cap internal sample scale or force texture filtering independently of machine tier;
+- exact mode remains legacy-pixel compatible;
+- a same-circle proof verifies partial-coverage edge pixels on high tier with no extra objects/details;
+- adaptive/fidelity tests expanded to 13, bringing the exact-source checkpoint to 44/44 local tests.
+
+Truth correction: more particles/details are not described as higher visual quality. They are detail density. Fidelity requires evidence from the same canonical scene.

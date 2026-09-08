@@ -56,12 +56,11 @@ def render_realized_with_receipt(project:dict[str,Any],output_dir:Path,machine_r
         raise ValueError('realization contract does not match canonical project')
     write_realization_inputs(out,machine,policy,contract)
     fm=render_project(project,out,machine_root,realization=contract)
-    # v0.9 does not degrade canonical audio/caption state. Those paths are rendered exactly as before.
     am=render_audio(project,out/'audio.wav',machine_root,out);subs=export_vtt(project,out/'captions.vtt')
     assembly,video=_assemble_video(project,out,contract['render']['export_profile'],assemble,machine['ffmpeg_available'])
     invariant_after=verify_contract(project,contract)
     rec={
-        'schema':'axm.framestate.render-receipt/v0.9',
+        'schema':'axm.framestate.render-receipt/v0.10',
         'project_id':project['id'],
         'project_digest':digest(project),
         'media_manifest_digest':fm['media_manifest_digest'],
@@ -77,6 +76,8 @@ def render_realized_with_receipt(project:dict[str,Any],output_dir:Path,machine_r
             'tier':contract['tier'],
             'backend':contract['backend'],
             'render':contract['render'],
+            'fidelity':contract['fidelity'],
+            'fidelity_limited':contract['fidelity_limited'],
             'expression_deltas':contract['expression_deltas'],
             'invariants_before':invariant_before,
             'invariants_after':invariant_after,
@@ -84,9 +85,11 @@ def render_realized_with_receipt(project:dict[str,Any],output_dir:Path,machine_r
         'environment':{'python':platform.python_version(),'platform':platform.platform()},
         'truth_boundary':{
             'canonical_project':'unchanged normalized project, digest-bound before and after realization',
-            'adaptive_expression':'bounded render work only; every reduction is explicit in the realization contract and receipt',
+            'adaptive_expression':'bounded detail/render work only; reductions and fidelity choices are explicit in the realization contract and receipt',
+            'fidelity':'internal supersampling and texture filtering are transient render choices; canonical canvas dimensions remain unchanged',
+            'effects':'effect programs execute at canonical output resolution after downsampling so their coordinate semantics are preserved',
             'frame_state':'exact PPM bytes for this selected realization; different valid tiers are not claimed pixel-identical',
-            'audio':'canonical audio event state and exact native PCM/WAV remain unchanged by v0.9 realization',
+            'audio':'canonical audio event state and exact native PCM/WAV remain unchanged by realization',
             'container_video':'external FFmpeg encoding boundary; export profile may adapt when compatibility assembly is requested',
         },
     }
@@ -112,13 +115,13 @@ def verify_realized_repeat(project:dict[str,Any],base_dir:Path,machine_root:Path
         'invariants_pass':a['realization']['invariants_after']['passed'] and b['realization']['invariants_after']['passed'],
     }
     result={
-        'schema':'axm.framestate.realized-repeat-verification/v0.1',
+        'schema':'axm.framestate.realized-repeat-verification/v0.2',
         'passed':all(checks.values()),
         'checks':checks,
         'project_digest':a['project_digest'],
         'contract_digest':a['realization']['contract_digest'],
         'frame_manifest_digest':am['manifest_digest'],
         'audio_pcm_digest':a['audio_manifest']['pcm_digest'],
-        'claim':'same canonical project + same machine capability state + same user policy deterministically reproduces the same realization contract, native frames and PCM in this runtime',
+        'claim':'same canonical project + same machine capability state + same user policy deterministically reproduces the same realization contract, fidelity choice, native frames and PCM in this runtime',
     }
     result['verification_digest']=digest(result);return result

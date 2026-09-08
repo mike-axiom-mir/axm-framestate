@@ -4,7 +4,7 @@ from pathlib import Path
 
 from axm_framestate.canonical import digest,load_project
 from axm_framestate.capabilities import analyze_requirements
-from axm_framestate.realization import normalize_machine_capabilities,normalize_realization_policy,plan_realization,verify_contract
+from axm_framestate.realization import normalize_machine_capabilities,plan_realization,verify_contract
 from axm_framestate.receipts import render_realized_with_receipt,verify_realized_repeat,render_with_receipt
 
 ROOT=Path(__file__).resolve().parents[1]
@@ -12,6 +12,10 @@ ROOT=Path(__file__).resolve().parents[1]
 
 def fixture(name:str):
     return json.loads((ROOT/'examples'/name).read_text(encoding='utf-8'))
+
+
+def ppm_body(path:Path)->bytes:
+    data=path.read_bytes();return data.split(b'\n',3)[3]
 
 
 class AdaptiveRealizationTests(unittest.TestCase):
@@ -56,7 +60,7 @@ class AdaptiveRealizationTests(unittest.TestCase):
             self.assertLess(lpart['particle_count'],hpart['particle_count'])
 
     def test_exact_realization_matches_legacy_native_pixels(self):
-        exact={**self.policy,'mode':'exact','allow_particle_reduction':False,'allow_shadow_disable':False}
+        exact={**self.policy,'mode':'exact','allow_particle_reduction':False,'allow_shadow_disable':False,'min_internal_sample_scale':1,'max_internal_sample_scale':1,'preferred_texture_filter':'nearest'}
         with tempfile.TemporaryDirectory() as td:
             td=Path(td);legacy=render_with_receipt(self.project,td/'legacy',ROOT,assemble=False);realized=render_realized_with_receipt(self.project,td/'exact',ROOT,self.low,exact,assemble=False)
             lm=json.loads((td/'legacy'/'frame-manifest.json').read_text());rm=json.loads((td/'exact'/'frame-manifest.json').read_text())
@@ -71,7 +75,39 @@ class AdaptiveRealizationTests(unittest.TestCase):
         m={**self.high,'memory_mb':0};c=plan_realization(self.project,m,self.policy);self.assertEqual(c['tier'],'minimum')
         n=normalize_machine_capabilities(self.low);self.assertIn('no person/device identity fingerprint',n['probe_scope'])
 
-    def test_capability_map_exposes_v09_floor(self):
+    def test_capability_map_exposes_v010_floor(self):
         req=fixture('realization_requirements.json')['required'];self.assertTrue(analyze_requirements(req)['ready'])
+
+    def test_fidelity_is_separate_from_detail_density(self):
+        lo=plan_realization(self.project,self.low,self.policy);hi=plan_realization(self.project,self.high,self.policy)
+        self.assertEqual(lo['canonical_project_digest'],hi['canonical_project_digest'])
+        self.assertEqual(lo['render']['internal_sample_scale'],1);self.assertEqual(hi['render']['internal_sample_scale'],2)
+        self.assertEqual(lo['render']['texture_filter'],'nearest');self.assertEqual(hi['render']['texture_filter'],'bilinear')
+        self.assertEqual(lo['fidelity']['internal_pixel_samples_per_output_pixel'],1);self.assertEqual(hi['fidelity']['internal_pixel_samples_per_output_pixel'],4)
+
+    def test_supersampling_creates_real_edge_fidelity_not_extra_objects(self):
+        project=load_project(ROOT/'examples'/'fidelity_probe.json')
+        with tempfile.TemporaryDirectory() as td:
+            td=Path(td);lo=render_realized_with_receipt(project,td/'low',ROOT,self.low,self.policy,assemble=False);hi=render_realized_with_receipt(project,td/'high',ROOT,self.high,self.policy,assemble=False)
+            lb=ppm_body(td/'low'/'frames'/'frame-000000.ppm');hb=ppm_body(td/'high'/'frames'/'frame-000000.ppm')
+            low_mid=sum(1 for i in range(0,len(lb),3) if 0<lb[i]<255 and lb[i]==lb[i+1]==lb[i+2])
+            high_mid=sum(1 for i in range(0,len(hb),3) if 0<hb[i]<255 and hb[i]==hb[i+1]==hb[i+2])
+            self.assertEqual(low_mid,0);self.assertGreater(high_mid,0)
+            lm=json.loads((td/'low'/'frame-manifest.json').read_text());hm=json.loads((td/'high'/'frame-manifest.json').read_text())
+            self.assertEqual(lm['states'][0]['visible_layers'],hm['states'][0]['visible_layers'])
+            self.assertEqual(lo['project_digest'],hi['project_digest'])
+
+    def test_user_can_cap_fidelity_work_independently_of_machine_power(self):
+        policy={**self.policy,'max_internal_sample_scale':1,'preferred_texture_filter':'nearest'}
+        hi=plan_realization(self.project,self.high,policy)
+        self.assertEqual(hi['tier'],'high');self.assertEqual(hi['render']['internal_sample_scale'],1);self.assertEqual(hi['render']['texture_filter'],'nearest')
+        self.assertTrue(hi['fidelity_limited'])
+
+    def test_effects_remain_canonical_output_resolution_semantics(self):
+        with tempfile.TemporaryDirectory() as td:
+            td=Path(td);lo=render_realized_with_receipt(self.project,td/'low',ROOT,self.low,self.policy,assemble=False);hi=render_realized_with_receipt(self.project,td/'high',ROOT,self.high,self.policy,assemble=False)
+            lm=json.loads((td/'low'/'frame-manifest.json').read_text());hm=json.loads((td/'high'/'frame-manifest.json').read_text())
+            self.assertEqual(lm['states'][0]['effects'],hm['states'][0]['effects'])
+            self.assertEqual(lm['states'][0]['realization']['skipped_effects'],hm['states'][0]['realization']['skipped_effects'])
 
 if __name__=='__main__':unittest.main()
