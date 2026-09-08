@@ -8,6 +8,7 @@ from .timeline import sample
 from .media import MediaCache, read_ppm
 from .text import bitmap_text, shaped_text
 from .three_d import CORDIC_SCALE, cube_mesh, project_vertex, rotate_xyz, sincos_mdeg
+from .skinning import skin_vertices
 
 class RenderError(RuntimeError): pass
 
@@ -88,7 +89,6 @@ def _composite_rgba(pix,w,h,rgba:bytes,sw:int,sh:int,cx:int,cy:int,dw:int,dh:int
             a=alpha*sa//255*ma//1000
             di=y*w+x; pix[di]=blend(pix[di],(sr,sg,sb),a,mode)
 
-
 def _text_rgba(layer:dict[str,Any],cache:MediaCache):
     bg=layer.get('background_color')
     if layer.get('font_media_id'):
@@ -110,7 +110,6 @@ def _draw_particles(pix,w,h,layer,frame,cx,cy,alpha,mode,particle_density_milli:
         px=cx+(rx%(layer['spread_x']*2+1)-layer['spread_x']); py=cy+(ry%(layer['spread_y']*2+1)-layer['spread_y'])-age*layer['speed']
         _draw_rect(pix,w,h,px,py,size,size,color,alpha,mode)
     return count
-
 
 def _sample_rgb_bilinear(body:bytes,w:int,h:int,xfp:int,yfp:int)->tuple[int,int,int]:
     xfp=max(0,min(max(0,w-1)*1024,xfp)); yfp=max(0,min(max(0,h-1)*1024,yfp))
@@ -149,7 +148,6 @@ def _triangle(pix,zbuf,w,h,pts,cols,alpha,mode,texture=None,uvs=None,texture_fil
             pix[idx]=blend(pix[idx],src,alpha,mode); drawn+=1
     return drawn
 
-
 def _render_mesh(pix,w,h,layer,frame,cx,cy,zoom,cache,mesh,shadows_enabled:bool=True,texture_filter:str='nearest',pixel_scale:int=1):
     s=layer['start_frame'];e=layer['end_frame']; depth=sample(layer['depth'],frame,s,e); size=sample(layer['size'],frame,s,e)*zoom//1000; rx=sample(layer['rot_x_mdeg'],frame,s,e);ry=sample(layer['rot_y_mdeg'],frame,s,e);rz=sample(layer['rot_z_mdeg'],frame,s,e)
     lx=sample(layer['x'],frame,s,e);ly=sample(layer['y'],frame,s,e); sx=_camera(lx,cx,zoom,w//2)-w//2; sy=_camera(ly,cy,zoom,h//2)-h//2
@@ -157,6 +155,9 @@ def _render_mesh(pix,w,h,layer,frame,cx,cy,zoom,cache,mesh,shadows_enabled:bool=
     if layer.get('morph_media_id'):
         other=cache.mesh(layer['morph_media_id']); mm=max(0,min(1000,sample(layer.get('morph_milli',0),frame,s,e)))
         if len(other['vertices'])==len(verts): verts=[tuple(a[k]+(b[k]-a[k])*mm//1000 for k in range(3)) for a,b in zip(verts,other['vertices'])]
+    skin_evidence={}
+    if layer.get('kind')=='skinned_mesh3d':
+        verts,skin_evidence=skin_vertices(verts,layer.get('rig',{}),layer.get('weights',[]),layer.get('clip',{}),frame,s,e)
     proj=[project_vertex(rotate_xyz(v,rx,ry,rz),sx,sy,depth,size,w,h) for v in verts]
     tex=None
     if layer.get('texture_media_id'):
@@ -175,8 +176,9 @@ def _render_mesh(pix,w,h,layer,frame,cx,cy,zoom,cache,mesh,shadows_enabled:bool=
         sp=[(x+30*pixel_scale,y+20*pixel_scale,z+1000) for x,y,z in proj]; zb=[10**12]*(w*h)
         for face in mesh['faces']:
             pts=[sp[r[0]] for r in face]; shadow_tris+=_triangle(pix,zb,w,h,pts,(8,8,12),250,'multiply',texture_filter=texture_filter)>0
-    return {'triangles':triangles,'shadow_triangles':shadow_tris,'depth':depth,'size':size,'rotation_mdeg':[rx,ry,rz]}
-
+    result={'triangles':triangles,'shadow_triangles':shadow_tris,'depth':depth,'size':size,'rotation_mdeg':[rx,ry,rz]}
+    result.update(skin_evidence)
+    return result
 
 def _bone_pose(layer,frame):
     rig=layer.get('rig',{}); bones=rig.get('bones',[]); clip=layer.get('clip',{}).get('bones',{}) if isinstance(layer.get('clip'),dict) else {}; poses={}
