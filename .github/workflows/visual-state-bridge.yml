@@ -28,7 +28,7 @@ jobs:
       - name: Compile source and focused bridge tests
         run: |
           python -m compileall -q src tests/test_visual_state_bridge.py
-          PYTHONPATH=src python -m unittest tests.test_visual_state_bridge -v
+          PYTHONPATH=src python -m unittest discover -s tests -p 'test_visual_state_bridge.py' -v
       - name: Run complete deterministic FrameState suite
         run: PYTHONPATH=src python -m unittest discover -s tests -v
 
