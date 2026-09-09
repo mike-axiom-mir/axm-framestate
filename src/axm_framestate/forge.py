@@ -17,6 +17,33 @@ class ForgeError(RuntimeError):
     pass
 
 
+def _verify_spawn_receipt(
+    receipt: Any,
+    *,
+    schema: str,
+    ref: str,
+    manifest_digest: str,
+    current_test: dict[str, Any],
+    label: str,
+) -> None:
+    if not isinstance(receipt, dict):
+        raise ForgeError(f"{label} receipt must be an object")
+    claimed_digest = receipt.get("receipt_digest")
+    unsigned = {key: value for key, value in receipt.items() if key != "receipt_digest"}
+    if claimed_digest != digest(unsigned):
+        raise ForgeError(f"{label} receipt digest mismatch")
+    if receipt.get("schema") != schema:
+        raise ForgeError(f"{label} receipt schema mismatch")
+    if receipt.get("ref") != ref:
+        raise ForgeError(f"{label} receipt ref mismatch")
+    if receipt.get("manifest_digest") != manifest_digest:
+        raise ForgeError(f"{label} manifest drift detected")
+    if receipt.get("detached") is not True or receipt.get("installed") is not False:
+        raise ForgeError(f"{label} receipt does not prove detached candidate state")
+    if receipt.get("test") != current_test or current_test.get("passed") is not True:
+        raise ForgeError(f"{label} receipt test evidence does not match current replay")
+
+
 def spawn_effect(candidate_file: Path, output_dir: Path) -> dict[str, Any]:
     raw = json.loads(Path(candidate_file).read_text(encoding="utf-8"))
     manifest = normalize_effect(raw)
@@ -43,8 +70,14 @@ def inspect_spawned(path: Path) -> tuple[dict[str, Any], dict[str, Any]]:
     raw = json.loads((Path(path) / "effect.json").read_text(encoding="utf-8"))
     manifest = normalize_effect(raw)
     receipt = json.loads((Path(path) / "spawn-receipt.json").read_text(encoding="utf-8"))
-    if receipt.get("manifest_digest") != digest(manifest):
-        raise ForgeError("candidate manifest drift detected")
+    _verify_spawn_receipt(
+        receipt,
+        schema="axm.framestate.spawn-receipt/v0.1",
+        ref=manifest["ref"],
+        manifest_digest=digest(manifest),
+        current_test=test_effect_manifest(manifest),
+        label="candidate",
+    )
     return manifest, receipt
 
 
@@ -110,8 +143,14 @@ def inspect_spawned_recipe(path: Path) -> tuple[dict[str, Any], dict[str, Any]]:
     raw = json.loads((Path(path) / "recipe.json").read_text(encoding="utf-8"))
     manifest = normalize_recipe(raw)
     receipt = json.loads((Path(path) / "spawn-receipt.json").read_text(encoding="utf-8"))
-    if receipt.get("manifest_digest") != digest(manifest):
-        raise ForgeError("recipe candidate manifest drift detected")
+    _verify_spawn_receipt(
+        receipt,
+        schema="axm.framestate.recipe-spawn-receipt/v0.1",
+        ref=manifest["ref"],
+        manifest_digest=digest(manifest),
+        current_test=test_recipe_manifest(manifest),
+        label="recipe candidate",
+    )
     return manifest, receipt
 
 
