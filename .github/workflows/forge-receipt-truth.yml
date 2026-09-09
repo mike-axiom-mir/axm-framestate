@@ -18,8 +18,11 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - name: Install existing image compatibility boundary
-        run: python -m pip install Pillow==12.3.0
+      - name: Install existing media compatibility boundary
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes ffmpeg
+          python -m pip install Pillow==12.3.0
       - name: Verify complete deterministic suite
         env:
           PYTHONPATH: src
