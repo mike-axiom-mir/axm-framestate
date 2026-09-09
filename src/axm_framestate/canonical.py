@@ -9,7 +9,10 @@ PROJECT_SCHEMA='axm.framestate.project/v0.5'
 class ProjectError(ValueError): pass
 
 def canonical_json(value:Any)->bytes:
-    return json.dumps(value,sort_keys=True,separators=(',',':'),ensure_ascii=False).encode('utf-8')
+    try:
+        return json.dumps(value,sort_keys=True,separators=(',',':'),ensure_ascii=False,allow_nan=False).encode('utf-8')
+    except (TypeError,ValueError) as e:
+        raise ProjectError(f'canonical state must be strict JSON: {e}') from e
 
 def digest(value:Any)->str:
     return 'sha256:'+hashlib.sha256(canonical_json(value)).hexdigest()
@@ -98,7 +101,7 @@ def normalize_project(raw:Any)->dict[str,Any]:
     pid=_text(raw.get('id'),'id',200); title=str(raw.get('title',pid))
     canvas=raw.get('canvas',{}); width=_int(canvas.get('width'),'canvas.width',16,4096); height=_int(canvas.get('height'),'canvas.height',16,4096); fps=_int(canvas.get('fps'),'canvas.fps',1,120); duration=_int(raw.get('duration_frames'),'duration_frames',1,fps*60*60)
     bg=_color(raw.get('background',[0,0,0]),'background')
-    cam=raw.get('camera',{}) or {}; camera={'x':_track(cam.get('x',0),'camera.x',duration,0),'y':_track(cam.get('y',0),'camera.y',duration,0),'zoom_milli':_track(cam.get('zoom_milli',1000),'camera.zoom_milli',duration,1000)}
+    cam=raw.get('camera',{}) or {}; camera={'x':_track(cam.get('x',0),'camera.x',duration,0),'y':_track(cam.get('y',0),f'camera.y',duration,0),'zoom_milli':_track(cam.get('zoom_milli',1000),'camera.zoom_milli',duration,1000)}
     media=[]; mids=set()
     for i,m in enumerate(raw.get('media',[]) or []):
         if not isinstance(m,dict): raise ProjectError(f'media[{i}] invalid')
@@ -144,7 +147,9 @@ def normalize_project(raw:Any)->dict[str,Any]:
     if not isinstance(effects,list) or not all(isinstance(x,str) and x for x in effects): raise ProjectError('effects invalid')
     meta=raw.get('metadata',{}) or {}
     if not isinstance(meta,dict): raise ProjectError('metadata invalid')
-    return {'schema':PROJECT_SCHEMA,'id':pid,'title':title,'canvas':{'width':width,'height':height,'fps':fps},'duration_frames':duration,'background':bg,'camera':camera,'media':media,'layers':sorted(layers,key=lambda x:(x['z'],x['id'])),'captions':captions,'audio':audio,'effects':effects,'markers':sorted(markers,key=lambda x:(x['frame'],x['label'])),'metadata':meta}
+    project={'schema':PROJECT_SCHEMA,'id':pid,'title':title,'canvas':{'width':width,'height':height,'fps':fps},'duration_frames':duration,'background':bg,'camera':camera,'media':media,'layers':sorted(layers,key=lambda x:(x['z'],x['id'])),'captions':captions,'audio':audio,'effects':effects,'markers':sorted(markers,key=lambda x:(x['frame'],x['label'])),'metadata':meta}
+    canonical_json(project)
+    return project
 
 def load_project(path:Path)->dict[str,Any]:
     try: raw=json.loads(Path(path).read_text(encoding='utf-8'))
