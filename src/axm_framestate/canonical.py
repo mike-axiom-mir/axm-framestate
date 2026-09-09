@@ -101,7 +101,7 @@ def normalize_project(raw:Any)->dict[str,Any]:
     pid=_text(raw.get('id'),'id',200); title=str(raw.get('title',pid))
     canvas=raw.get('canvas',{}); width=_int(canvas.get('width'),'canvas.width',16,4096); height=_int(canvas.get('height'),'canvas.height',16,4096); fps=_int(canvas.get('fps'),'canvas.fps',1,120); duration=_int(raw.get('duration_frames'),'duration_frames',1,fps*60*60)
     bg=_color(raw.get('background',[0,0,0]),'background')
-    cam=raw.get('camera',{}) or {}; camera={'x':_track(cam.get('x',0),'camera.x',duration,0),'y':_track(cam.get('y',0),f'camera.y',duration,0),'zoom_milli':_track(cam.get('zoom_milli',1000),'camera.zoom_milli',duration,1000)}
+    cam=raw.get('camera',{}) or {}; camera={'x':_track(cam.get('x',0),'camera.x',duration,0),'y':_track(cam.get('y',0),'camera.y',duration,0),'zoom_milli':_track(cam.get('zoom_milli',1000),'camera.zoom_milli',duration,1000)}
     media=[]; mids=set()
     for i,m in enumerate(raw.get('media',[]) or []):
         if not isinstance(m,dict): raise ProjectError(f'media[{i}] invalid')
