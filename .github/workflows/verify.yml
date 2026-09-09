@@ -29,7 +29,9 @@ jobs:
       - name: Run complete regression tree
         run: PYTHONPATH=src python -m unittest discover -s tests -v
       - name: Validate Studio JavaScript
-        run: node --check src/axm_framestate/studio_ui/app.js
+        run: |
+          node --check src/axm_framestate/studio_ui/app.js
+          node --check src/axm_framestate/studio_ui/render_session.js
       - name: Verify Studio final-render experience
         run: node --test tests/studio_render_session.test.cjs
       - name: Validate package import
@@ -61,7 +63,7 @@ jobs:
           python - <<'PY'
           from importlib import resources
           root = resources.files('axm_framestate').joinpath('studio_ui')
-          for name in ('index.html', 'style.css', 'app.js'):
+          for name in ('index.html', 'style.css', 'app.js', 'render_session.js'):
               data = root.joinpath(name).read_bytes()
               assert data, name
           print('PACKAGED_STUDIO_OK')
