@@ -77,6 +77,23 @@
         <div class="scrub-row"><input id="scrubber" type="range" min="0" max="0" value="0"></div>
       </div>
 
+      <section id="renderSession" class="render-session panel" data-state="idle" aria-live="polite" aria-atomic="true">
+        <div class="render-session-head">
+          <div>
+            <span class="render-kicker">Final output</span>
+            <strong id="renderSessionState">READY</strong>
+          </div>
+          <span id="renderElapsed" class="pill">idle</span>
+        </div>
+        <p id="renderSessionDetail" class="render-session-detail">Final Render validates the current project, then renders a fixed canonical snapshot. Rendering never saves edits automatically.</p>
+        <div class="render-session-meta" aria-label="Final render snapshot details">
+          <span><small>Snapshot</small><code id="renderSnapshot">created on start</code></span>
+          <span><small>Mode</small><strong id="renderMode">—</strong></span>
+          <span><small>Receipt</small><strong id="renderReceipt">none</strong></span>
+        </div>
+        <div class="render-session-actions"><button id="retryRenderBtn" hidden>Retry Same Snapshot</button></div>
+      </section>
+
       <div class="timeline panel">
         <div class="section-title"><span>Timeline</span><span class="muted">canonical timing</span></div>
         <div id="timelineRows"></div>
