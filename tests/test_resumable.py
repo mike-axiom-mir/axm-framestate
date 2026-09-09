@@ -52,6 +52,21 @@ class ResumableRenderTests(unittest.TestCase):
             with self.assertRaises(ResumeError):
                 render_frames_resumable(project, out, root)
 
+    def test_tampered_checkpoint_state_fails_closed(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            project = small_project()
+            out = root / "out"
+            render_frames_resumable(project, out, root, checkpoint_interval=1, max_new_frames=2)
+            checkpoint_path = out / "render-checkpoint.json"
+            checkpoint = json.loads(checkpoint_path.read_text(encoding="utf-8"))
+            checkpoint["completed"][0]["state"]["forged"] = "accepted"
+            checkpoint_path.write_text(json.dumps(checkpoint), encoding="utf-8")
+            tampered_bytes = checkpoint_path.read_bytes()
+            with self.assertRaisesRegex(ResumeError, "checkpoint digest"):
+                render_frames_resumable(project, out, root)
+            self.assertEqual(checkpoint_path.read_bytes(), tampered_bytes)
+
     def test_unadmitted_tail_is_discarded_and_rerendered(self):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
