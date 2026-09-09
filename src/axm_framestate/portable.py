@@ -34,13 +34,14 @@ def portable_doctor() -> dict[str, Any]:
             "native_speech": capabilities["native-speech-synthesis"]["status"],
             "cpu_renderer": capabilities["2d-procedural-shapes"]["status"],
             "parallel_frames": capabilities.get("parallel-frame-render-backend", {}).get("status", "unpromoted"),
+            "semantic_boundary": capabilities.get("semantic-direction-bridge", {}).get("status", "unpromoted"),
         },
         "optional_compatibility_tools": {
             "ffmpeg": bool(shutil.which("ffmpeg")),
             "espeak": bool(shutil.which("espeak") or shutil.which("espeak-ng")),
             "pillow": importlib.util.find_spec("PIL") is not None,
         },
-        "truth_boundary": "A frozen FrameState executable owns the canonical/native core and Studio resources. Optional compatibility tools remain external unless separately packaged and evidenced.",
+        "truth_boundary": "A frozen FrameState executable owns the canonical/native core and Studio resources. Optional compatibility tools and semantic translators remain external unless separately packaged and evidenced.",
     }
 
 
@@ -54,6 +55,7 @@ Usage:
   FrameState cli <args...>        Run the canonical framestate CLI
   FrameState resume <args...>     Run crash-resumable rendering
   FrameState parallel <args...>   Run deterministic multi-process full-movie rendering
+  FrameState semantic <args...>   Stage attributed free-form semantic candidate state
   FrameState doctor               Inspect this portable application's owned/optional boundaries
   FrameState --help               Show this help
 """
@@ -82,6 +84,9 @@ def main(argv: list[str] | None = None) -> int:
     if command == "parallel":
         from .parallel_movie import main as parallel_main
         return parallel_main(rest)
+    if command == "semantic":
+        from .semantic import main as semantic_main
+        return semantic_main(rest)
     if command == "doctor":
         print(json.dumps(portable_doctor(), indent=2, sort_keys=True, ensure_ascii=False))
         return 0
