@@ -31,7 +31,7 @@ jobs:
       - name: Validate Studio JavaScript
         run: node --check src/axm_framestate/studio_ui/app.js
       - name: Validate package import
-        run: PYTHONPATH=src python -c "from axm_framestate.studio import default_project, ppm_to_png; from axm_framestate.resumable import render_frames_resumable; from axm_framestate.parallel_render import render_project_parallel; from axm_framestate.portable import portable_doctor; assert default_project()['schema'].endswith('/v0.5'); assert ppm_to_png(b'P6\\n1 1\\n255\\n\\x00\\x00\\x00').startswith(b'\\x89PNG'); assert callable(render_frames_resumable); assert callable(render_project_parallel); assert portable_doctor()['schema'].endswith('/v0.2')"
+        run: PYTHONPATH=src python -c "from axm_framestate.studio import default_project, ppm_to_png; from axm_framestate.resumable import render_frames_resumable; from axm_framestate.parallel_render import render_project_parallel; from axm_framestate.semantic import stage_semantic_candidate; from axm_framestate.portable import portable_doctor; assert default_project()['schema'].endswith('/v0.5'); assert ppm_to_png(b'P6\\n1 1\\n255\\n\\x00\\x00\\x00').startswith(b'\\x89PNG'); assert callable(render_frames_resumable); assert callable(render_project_parallel); assert callable(stage_semantic_candidate); assert portable_doctor()['schema'].endswith('/v0.2')"
 
   package:
     runs-on: ubuntu-latest
@@ -51,6 +51,7 @@ jobs:
           framestate-studio --help >/tmp/studio-help.txt
           framestate-render-resume --help >/tmp/resume-help.txt
           framestate-render-parallel --help >/tmp/parallel-help.txt
+          framestate-semantic --help >/tmp/semantic-help.txt
           framestate-portable doctor >/tmp/portable-doctor.json
           framestate-portable --help >/tmp/portable-help.txt
       - name: Verify packaged Studio resources
