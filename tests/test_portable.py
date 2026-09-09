@@ -18,7 +18,9 @@ class PortableTests(unittest.TestCase):
         self.assertTrue(all(v.startswith("sha256:") for v in result["studio_resources"].values()))
         self.assertEqual(result["owned_core_paths"]["native_png"], "tested")
         self.assertEqual(result["owned_core_paths"]["native_wav"], "tested")
-        self.assertIn("Optional compatibility tools remain external", result["truth_boundary"])
+        boundary = result["truth_boundary"]
+        self.assertIn("Optional compatibility tools", boundary)
+        self.assertIn("semantic translators remain external", boundary)
 
     def test_portable_cli_routes_to_canonical_capability_map(self):
         out = io.StringIO()
@@ -36,6 +38,7 @@ class PortableTests(unittest.TestCase):
         self.assertEqual(code, 0)
         self.assertIn("FrameState portable application", out.getvalue())
         self.assertIn("FrameState parallel", out.getvalue())
+        self.assertIn("FrameState semantic", out.getvalue())
 
 
 if __name__ == "__main__":
