@@ -1,10 +1,19 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import subprocess
 import sys
 import tempfile
 from pathlib import Path
+
+
+def canonical_bytes(value) -> bytes:
+    return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
+
+
+def fs_digest(value) -> str:
+    return "sha256:" + hashlib.sha256(canonical_bytes(value)).hexdigest()
 
 
 def run_json(exe: Path, *args: str, timeout: int = 120) -> dict:
@@ -61,23 +70,54 @@ def main(argv: list[str] | None = None) -> int:
     assert help_proc.returncode == 0, help_proc.stderr
     assert "FrameState portable application" in help_proc.stdout, help_proc.stdout
     assert "FrameState parallel" in help_proc.stdout, help_proc.stdout
+    assert "FrameState semantic" in help_proc.stdout, help_proc.stdout
 
     with tempfile.TemporaryDirectory() as td:
         root = Path(td)
-        project = root / "parallel-proof.json"
-        output = root / "render"
-        project.write_text(json.dumps(tiny_project(), sort_keys=True) + "\n", encoding="utf-8")
-        parallel = run_json(exe, "parallel", str(project), str(output), "--workers", "2", "--no-assemble", timeout=180)
+        project_path = root / "portable-proof.json"
+        render_output = root / "render"
+        project_path.write_text(json.dumps(tiny_project(), sort_keys=True) + "\n", encoding="utf-8")
+
+        parallel = run_json(exe, "parallel", str(project_path), str(render_output), "--workers", "2", "--no-assemble", timeout=180)
         assert parallel["schema"] == "axm.framestate.parallel-render-receipt/v0.1", parallel
         assert parallel["parallel_execution"]["backend"] == "cpu-parallel", parallel
         assert parallel["parallel_execution"]["worker_count"] == 2, parallel
         assert parallel["parallel_execution"]["frame_manifest_digest"] == parallel["frame_manifest_digest"], parallel
-        assert (output / "frame-manifest.json").is_file(), parallel
-        assert (output / "parallel-execution.json").is_file(), parallel
+        assert (render_output / "frame-manifest.json").is_file(), parallel
+        assert (render_output / "parallel-execution.json").is_file(), parallel
+
+        normalized = run_json(exe, "cli", "inspect", str(project_path))
+        direction = {
+            "schema": "axm.framestate.semantic-direction/v0.1",
+            "id": "portable-semantic-proof",
+            "text": "Make the test candidate calmer.",
+        }
+        candidate = json.loads(json.dumps(normalized))
+        candidate["title"] = "Portable semantic candidate"
+        response = {
+            "schema": "axm.framestate.semantic-response/v0.1",
+            "input_project_digest": fs_digest(normalized),
+            "direction_text_digest": fs_digest(direction["text"]),
+            "translator": {"id": "portable-fixture", "version": "1", "implementation": "precomputed-smoke"},
+            "candidate_project": candidate,
+            "rationale": "portable staging proof only",
+            "assumptions": [],
+        }
+        direction_path = root / "direction.json"
+        response_path = root / "response.json"
+        stage_output = root / "semantic-stage"
+        direction_path.write_text(json.dumps(direction, sort_keys=True) + "\n", encoding="utf-8")
+        response_path.write_text(json.dumps(response, sort_keys=True) + "\n", encoding="utf-8")
+        semantic = run_json(exe, "semantic", str(project_path), str(direction_path), str(stage_output), "--response", str(response_path))
+        assert semantic["schema"] == "axm.framestate.semantic-receipt/v0.1", semantic
+        assert semantic["status"] == "STAGED_CHANGED", semantic
+        assert semantic["automatic_canonical_write"] is False, semantic
+        assert (stage_output / "semantic-candidate-project.json").is_file(), semantic
 
     print(json.dumps({
         "portable_smoke": "PASS",
         "parallel_smoke": "PASS",
+        "semantic_smoke": "PASS",
         "executable": exe.name,
         "platform_family": doctor["platform_family"],
         "version": doctor["version"],
