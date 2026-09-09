@@ -6,7 +6,7 @@ const {
   shortDigest,
   renderSessionView,
   newRenderSession,
-} = require('../src/axm_framestate/studio_ui/app.js');
+} = require('../src/axm_framestate/studio_ui/render_session.js');
 
 test('elapsed formatting stays factual and bounded', () => {
   assert.equal(formatElapsed(0), '0s');
@@ -16,12 +16,7 @@ test('elapsed formatting stays factual and bounded', () => {
 });
 
 test('running view exposes snapshot identity without fake progress', () => {
-  const session = {
-    status: 'running',
-    digest: 'sha256:1234567890abcdef',
-    mode: 'adaptive',
-    startedAt: 1000,
-  };
+  const session = {status: 'running', digest: 'sha256:1234567890abcdef', mode: 'adaptive', startedAt: 1000};
   const view = renderSessionView(session, 7000, false, session.digest);
   assert.equal(view.state, 'RENDERING LOCAL SNAPSHOT');
   assert.equal(view.snapshot, '1234567890ab');
@@ -32,12 +27,7 @@ test('running view exposes snapshot identity without fake progress', () => {
 });
 
 test('missing completion receipt is held and exact-snapshot retry stays available', () => {
-  const session = {
-    status: 'no_receipt',
-    digest: 'sha256:abcdefabcdef1234',
-    mode: 'exact',
-    startedAt: 0,
-  };
+  const session = {status: 'no_receipt', digest: 'sha256:abcdefabcdef1234', mode: 'exact', startedAt: 0};
   const view = renderSessionView(session, 12_000, true, 'sha256:newer');
   assert.equal(view.state, 'NO COMPLETION RECEIPT');
   assert.equal(view.receipt, 'none');
@@ -48,10 +38,11 @@ test('missing completion receipt is held and exact-snapshot retry stays availabl
 
 test('new render session owns a detached project snapshot', () => {
   const project = {id: 'film', title: 'A', layers: [{id: 'one'}]};
-  const session = newRenderSession(project, 'sha256:1234567890abcdef', 'exact');
+  const session = newRenderSession(project, 'sha256:1234567890abcdef', 'exact', 5000);
   project.title = 'B';
   project.layers[0].id = 'changed';
   assert.equal(session.project.title, 'A');
   assert.equal(session.project.layers[0].id, 'one');
   assert.equal(session.name, `film-${shortDigest(session.digest)}`);
+  assert.equal(session.startedAt, 5000);
 });
