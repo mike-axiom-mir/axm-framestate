@@ -90,6 +90,10 @@ def _load_checkpoint(path: Path) -> dict[str, Any] | None:
 
 
 def _verify_checkpoint(checkpoint: dict[str, Any], identity: dict[str, Any], frame_dir: Path) -> list[dict[str, Any]]:
+    recorded_digest = checkpoint.get("checkpoint_digest")
+    expected_digest = digest({key: value for key, value in checkpoint.items() if key != "checkpoint_digest"})
+    if recorded_digest != expected_digest:
+        raise ResumeError("render checkpoint digest does not match checkpoint content")
     if checkpoint.get("identity") != identity:
         raise ResumeError("render checkpoint identity does not match current project/media/realization")
     rows = checkpoint.get("completed", [])
