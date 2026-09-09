@@ -4,19 +4,7 @@ const $ = (q) => document.querySelector(q);
 const $$ = (q) => Array.from(document.querySelectorAll(q));
 const clone = (v) => JSON.parse(JSON.stringify(v));
 
-const S = {
-  project: null,
-  digest: "",
-  frame: 0,
-  selected: null,
-  dirty: false,
-  playing: false,
-  timer: null,
-  previewToken: 0,
-  assetLimit: 64 * 1024 * 1024,
-  renderSession: null,
-  renderTimer: null,
-};
+const S = { project: null, digest: "", frame: 0, selected: null, dirty: false, playing: false, timer: null, previewToken: 0, assetLimit: 64 * 1024 * 1024 };
 
 async function api(path, payload = null) {
   const opts = payload === null ? {} : { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) };
@@ -27,26 +15,17 @@ async function api(path, payload = null) {
 }
 
 function toast(msg, error = false) {
-  const el = $("#toast");
-  el.textContent = msg;
-  el.className = error ? "show error" : "show";
-  clearTimeout(el._timer);
-  el._timer = setTimeout(() => { el.className = ""; }, 2800);
+  const el = $("#toast"); el.textContent = msg; el.className = error ? "show error" : "show";
+  clearTimeout(el._timer); el._timer = setTimeout(() => { el.className = ""; }, 2800);
 }
 
 function markDirty(v = true) {
-  S.dirty = v;
-  const el = $("#dirtyFlag");
-  el.textContent = v ? "unsaved" : "clean";
-  el.className = v ? "pill dirty" : "pill";
-  renderRenderSession();
+  S.dirty = v; const el = $("#dirtyFlag"); el.textContent = v ? "unsaved" : "clean"; el.className = v ? "pill dirty" : "pill";
 }
 
 function uid(prefix) {
   const ids = new Set([...(S.project.media || []).map(x => x.id), ...(S.project.layers || []).map(x => x.id), ...(S.project.captions || []).map(x => x.id), ...(S.project.audio || []).map(x => x.id)]);
-  let n = 1;
-  while (ids.has(`${prefix}-${n}`)) n++;
-  return `${prefix}-${n}`;
+  let n = 1; while (ids.has(`${prefix}-${n}`)) n++; return `${prefix}-${n}`;
 }
 
 function currentObject() {
@@ -55,11 +34,7 @@ function currentObject() {
   return rows.find(x => x.id === S.selected.id) || null;
 }
 
-function setSelection(type, id) {
-  S.selected = { type, id };
-  renderLists();
-  renderInspector();
-}
+function setSelection(type, id) { S.selected = { type, id }; renderLists(); renderInspector(); }
 
 function layerDefaults(kind) {
   const x = Math.floor(S.project.canvas.width / 2), y = Math.floor(S.project.canvas.height / 2), end = S.project.duration_frames;
@@ -72,175 +47,60 @@ function layerDefaults(kind) {
   return base;
 }
 
-function addLayer(kind) {
-  const row = layerDefaults(kind);
-  S.project.layers.push(row);
-  markDirty();
-  setSelection("layer", row.id);
-  renderAll();
-  schedulePreview();
-}
-
-function addCaption() {
-  const row = { id: uid("caption"), start_frame: 0, end_frame: S.project.duration_frames, text: "Caption", position: "bottom", scale: 1, font_size: 14 };
-  S.project.captions.push(row);
-  markDirty();
-  setSelection("caption", row.id);
-  renderAll();
-  schedulePreview();
-}
-
-function addTone() {
-  const row = { id: uid("tone"), kind: "tone", start_frame: 0, end_frame: S.project.duration_frames, frequency_hz: 440, gain_milli: 120, pan_milli: 0 };
-  S.project.audio.push(row);
-  markDirty();
-  setSelection("audio", row.id);
-  renderAll();
-}
-
-function addSpeech() {
-  const row = { id: uid("speech"), kind: "speech", start_frame: 0, end_frame: S.project.duration_frames, text: "FrameState speaks.", engine: "native", voice: "native-neutral-1", rate_wpm: 165, gain_milli: 850, pan_milli: 0 };
-  S.project.audio.push(row);
-  markDirty();
-  setSelection("audio", row.id);
-  renderAll();
-}
+function addLayer(kind) { const row = layerDefaults(kind); S.project.layers.push(row); markDirty(); setSelection("layer", row.id); renderAll(); schedulePreview(); }
+function addCaption() { const row = { id: uid("caption"), start_frame: 0, end_frame: S.project.duration_frames, text: "Caption", position: "bottom", scale: 1, font_size: 14 }; S.project.captions.push(row); markDirty(); setSelection("caption", row.id); renderAll(); schedulePreview(); }
+function addTone() { const row = { id: uid("tone"), kind: "tone", start_frame: 0, end_frame: S.project.duration_frames, frequency_hz: 440, gain_milli: 120, pan_milli: 0 }; S.project.audio.push(row); markDirty(); setSelection("audio", row.id); renderAll(); }
+function addSpeech() { const row = { id: uid("speech"), kind: "speech", start_frame: 0, end_frame: S.project.duration_frames, text: "FrameState speaks.", engine: "native", voice: "native-neutral-1", rate_wpm: 165, gain_milli: 850, pan_milli: 0 }; S.project.audio.push(row); markDirty(); setSelection("audio", row.id); renderAll(); }
 
 function duplicateSelected() {
-  const obj = currentObject();
-  if (!obj || !S.selected) return;
-  const copy = clone(obj);
-  copy.id = uid(obj.kind || S.selected.type);
-  if (S.selected.type === "layer") {
-    copy.z = Math.max(...S.project.layers.map(x => x.z || 0), 0) + 1;
-    S.project.layers.push(copy);
-  } else if (S.selected.type === "caption") S.project.captions.push(copy);
-  else S.project.audio.push(copy);
-  markDirty();
-  setSelection(S.selected.type, copy.id);
-  renderAll();
-  schedulePreview();
+  const obj = currentObject(); if (!obj || !S.selected) return;
+  const copy = clone(obj); copy.id = uid(obj.kind || S.selected.type);
+  if (S.selected.type === "layer") { copy.z = Math.max(...S.project.layers.map(x => x.z || 0), 0) + 1; S.project.layers.push(copy); }
+  else if (S.selected.type === "caption") S.project.captions.push(copy); else S.project.audio.push(copy);
+  markDirty(); setSelection(S.selected.type, copy.id); renderAll(); schedulePreview();
 }
 
 function deleteSelected() {
   if (!S.selected) return;
   const key = S.selected.type === "layer" ? "layers" : S.selected.type === "caption" ? "captions" : "audio";
-  S.project[key] = S.project[key].filter(x => x.id !== S.selected.id);
-  S.selected = null;
-  markDirty();
-  renderAll();
-  schedulePreview();
+  S.project[key] = S.project[key].filter(x => x.id !== S.selected.id); S.selected = null; markDirty(); renderAll(); schedulePreview();
 }
 
 function renderProjectFields() {
-  $("#projectTitle").value = S.project.title;
-  $("#canvasW").value = S.project.canvas.width;
-  $("#canvasH").value = S.project.canvas.height;
-  $("#fps").value = S.project.canvas.fps;
-  $("#duration").value = S.project.duration_frames;
-  $("#background").value = S.project.background.join(",");
-  $("#digest").textContent = S.digest || "canonical state";
-  $("#scrubber").max = Math.max(0, S.project.duration_frames - 1);
-  $("#scrubber").value = Math.min(S.frame, S.project.duration_frames - 1);
-  $("#frameLabel").textContent = `Frame ${S.frame} / ${S.project.duration_frames - 1}`;
+  $("#projectTitle").value = S.project.title; $("#canvasW").value = S.project.canvas.width; $("#canvasH").value = S.project.canvas.height; $("#fps").value = S.project.canvas.fps; $("#duration").value = S.project.duration_frames; $("#background").value = S.project.background.join(",");
+  $("#digest").textContent = S.digest || "canonical state"; $("#scrubber").max = Math.max(0, S.project.duration_frames - 1); $("#scrubber").value = Math.min(S.frame, S.project.duration_frames - 1); $("#frameLabel").textContent = `Frame ${S.frame} / ${S.project.duration_frames - 1}`;
   $("#assetLimit").textContent = `≤ ${Math.floor(S.assetLimit / 1024 / 1024)} MB`;
   $$('[data-effect]').forEach(ch => ch.checked = S.project.effects.includes(ch.dataset.effect));
 }
 
 function objectRow(type, row, meta) {
-  const div = document.createElement("div");
-  div.className = "object-row" + (S.selected && S.selected.type === type && S.selected.id === row.id ? " selected" : "");
-  const name = document.createElement("span");
-  name.textContent = row.id;
-  const m = document.createElement("span");
-  m.className = "meta";
-  m.textContent = meta;
-  div.append(name, m);
-  if (type !== "media") div.onclick = () => setSelection(type, row.id);
-  return div;
+  const div = document.createElement("div"); div.className = "object-row" + (S.selected && S.selected.type === type && S.selected.id === row.id ? " selected" : "");
+  const name = document.createElement("span"); name.textContent = row.id; const m = document.createElement("span"); m.className = "meta"; m.textContent = meta; div.append(name, m); if (type !== "media") div.onclick = () => setSelection(type, row.id); return div;
 }
 
 function renderLists() {
-  const media = $("#mediaList");
-  media.innerHTML = "";
-  (S.project.media || []).forEach(x => media.appendChild(objectRow("media", x, `${x.kind} · ${x.path}`)));
-  const layers = $("#layerList");
-  layers.innerHTML = "";
-  [...S.project.layers].sort((a,b) => (b.z||0)-(a.z||0)).forEach(x => layers.appendChild(objectRow("layer", x, `${x.kind} · z${x.z}`)));
-  const caps = $("#captionList");
-  caps.innerHTML = "";
-  S.project.captions.forEach(x => caps.appendChild(objectRow("caption", x, `${x.start_frame}–${x.end_frame}`)));
-  const audio = $("#audioList");
-  audio.innerHTML = "";
-  S.project.audio.forEach(x => audio.appendChild(objectRow("audio", x, x.kind)));
+  const media = $("#mediaList"); media.innerHTML = ""; (S.project.media || []).forEach(x => media.appendChild(objectRow("media", x, `${x.kind} · ${x.path}`)));
+  const layers = $("#layerList"); layers.innerHTML = ""; [...S.project.layers].sort((a,b) => (b.z||0)-(a.z||0)).forEach(x => layers.appendChild(objectRow("layer", x, `${x.kind} · z${x.z}`)));
+  const caps = $("#captionList"); caps.innerHTML = ""; S.project.captions.forEach(x => caps.appendChild(objectRow("caption", x, `${x.start_frame}–${x.end_frame}`)));
+  const audio = $("#audioList"); audio.innerHTML = ""; S.project.audio.forEach(x => audio.appendChild(objectRow("audio", x, x.kind)));
 }
 
 function field(label, key, value, opts = {}) {
-  const wrap = document.createElement("label");
-  wrap.textContent = label;
+  const wrap = document.createElement("label"); wrap.textContent = label;
   let input;
-  if (opts.track && typeof value === "object") {
-    input = document.createElement("textarea");
-    input.className = "track-editor";
-    input.value = JSON.stringify(value, null, 2);
-    input.onchange = () => { try { opts.target[key] = JSON.parse(input.value); changed(); } catch(e) { toast(e.message, true); } };
-  } else if (opts.boolean) {
-    input = document.createElement("input");
-    input.type = "checkbox";
-    input.checked = !!value;
-    input.onchange = () => { opts.target[key] = input.checked; changed(); };
-  } else {
-    input = document.createElement("input");
-    input.type = opts.type || (typeof value === "number" ? "number" : "text");
-    input.value = Array.isArray(value) ? value.join(",") : (value ?? "");
-    input.onchange = () => {
-      let v = input.value;
-      if (Array.isArray(value)) v = input.value.split(",").map(s => Number(s.trim()));
-      else if (typeof value === "number") v = Number(v);
-      opts.target[key] = v;
-      changed();
-    };
-  }
-  wrap.appendChild(input);
-  return wrap;
+  if (opts.track && typeof value === "object") { input = document.createElement("textarea"); input.className = "track-editor"; input.value = JSON.stringify(value, null, 2); input.onchange = () => { try { opts.target[key] = JSON.parse(input.value); changed(); } catch(e) { toast(e.message, true); } }; }
+  else if (opts.boolean) { input = document.createElement("input"); input.type = "checkbox"; input.checked = !!value; input.onchange = () => { opts.target[key] = input.checked; changed(); }; }
+  else { input = document.createElement("input"); input.type = opts.type || (typeof value === "number" ? "number" : "text"); input.value = Array.isArray(value) ? value.join(",") : (value ?? ""); input.onchange = () => { let v = input.value; if (Array.isArray(value)) v = input.value.split(",").map(s => Number(s.trim())); else if (typeof value === "number") v = Number(v); opts.target[key] = v; changed(); }; }
+  wrap.appendChild(input); return wrap;
 }
 
-function group(title, nodes) {
-  const g = document.createElement("div");
-  g.className = "inspector-group";
-  const h = document.createElement("h4");
-  h.textContent = title;
-  g.appendChild(h);
-  nodes.filter(Boolean).forEach(n => g.appendChild(n));
-  return g;
-}
-
-function pair(a,b) {
-  const d = document.createElement("div");
-  d.className = "inline2";
-  d.append(a,b);
-  return d;
-}
-
-function changed() {
-  markDirty();
-  renderProjectFields();
-  renderLists();
-  renderTimeline();
-  schedulePreview();
-}
+function group(title, nodes) { const g = document.createElement("div"); g.className = "inspector-group"; const h = document.createElement("h4"); h.textContent = title; g.appendChild(h); nodes.filter(Boolean).forEach(n => g.appendChild(n)); return g; }
+function pair(a,b) { const d = document.createElement("div"); d.className = "inline2"; d.append(a,b); return d; }
+function changed() { markDirty(); renderProjectFields(); renderLists(); renderTimeline(); schedulePreview(); }
 
 function renderInspector() {
-  const host = $("#inspector"), title = $("#selectionTitle");
-  host.innerHTML = "";
-  const obj = currentObject();
-  $("#deleteBtn").disabled = !obj;
-  $("#duplicateBtn").disabled = !obj;
-  if (!obj || !S.selected) {
-    title.textContent = "Nothing selected";
-    host.textContent = "Select a layer, caption or audio event.";
-    return;
-  }
+  const host = $("#inspector"), title = $("#selectionTitle"); host.innerHTML = ""; const obj = currentObject(); $("#deleteBtn").disabled = !obj; $("#duplicateBtn").disabled = !obj;
+  if (!obj || !S.selected) { title.textContent = "Nothing selected"; host.textContent = "Select a layer, caption or audio event."; return; }
   title.textContent = `${S.selected.type.toUpperCase()} · ${obj.id}`;
   host.appendChild(group("Identity", [field("ID", "id", obj.id, {target: obj}), obj.kind ? field("Kind", "kind", obj.kind, {target: obj}) : null]));
   if (S.selected.type === "layer") {
@@ -268,371 +128,66 @@ function renderInspector() {
 }
 
 function renderTimeline() {
-  const host = $("#timelineRows");
-  host.innerHTML = "";
-  const dur = Math.max(1, S.project.duration_frames);
-  const add = (label, start, end, cls="") => {
-    const row = document.createElement("div"); row.className = "timeline-row";
-    const l = document.createElement("div"); l.className="timeline-label"; l.textContent=label;
-    const tr=document.createElement("div"); tr.className="timeline-track";
-    const bar=document.createElement("div"); bar.className="timeline-bar "+cls; bar.style.left=`${100*start/dur}%`; bar.style.width=`${100*Math.max(1,end-start)/dur}%`;
-    const cur=document.createElement("div"); cur.className="timeline-cursor"; cur.style.left=`${100*S.frame/dur}%`;
-    tr.append(bar,cur); row.append(l,tr); host.appendChild(row);
-  };
-  [...S.project.layers].sort((a,b)=>(b.z||0)-(a.z||0)).forEach(x=>add(x.id,x.start_frame,x.end_frame));
-  S.project.captions.forEach(x=>add(`CC ${x.id}`,x.start_frame,x.end_frame,"caption"));
-  S.project.audio.forEach(x=>add(`♪ ${x.id}`,x.start_frame,x.end_frame,"audio"));
+  const host = $("#timelineRows"); host.innerHTML = ""; const dur = Math.max(1, S.project.duration_frames);
+  const add = (label, start, end, cls="") => { const row = document.createElement("div"); row.className = "timeline-row"; const l = document.createElement("div"); l.className="timeline-label"; l.textContent=label; const tr=document.createElement("div"); tr.className="timeline-track"; const bar=document.createElement("div"); bar.className="timeline-bar "+cls; bar.style.left=`${100*start/dur}%`; bar.style.width=`${100*Math.max(1,end-start)/dur}%`; const cur=document.createElement("div"); cur.className="timeline-cursor"; cur.style.left=`${100*S.frame/dur}%`; tr.append(bar,cur); row.append(l,tr); host.appendChild(row); };
+  [...S.project.layers].sort((a,b)=>(b.z||0)-(a.z||0)).forEach(x=>add(x.id,x.start_frame,x.end_frame)); S.project.captions.forEach(x=>add(`CC ${x.id}`,x.start_frame,x.end_frame,"caption")); S.project.audio.forEach(x=>add(`♪ ${x.id}`,x.start_frame,x.end_frame,"audio"));
 }
 
-function renderAll() {
-  renderProjectFields();
-  renderLists();
-  renderInspector();
-  renderTimeline();
-  renderRenderSession();
-}
+function renderAll() { renderProjectFields(); renderLists(); renderInspector(); renderTimeline(); }
 
 let previewDebounce = null;
-function schedulePreview() {
-  clearTimeout(previewDebounce);
-  previewDebounce = setTimeout(preview, 120);
-}
-
+function schedulePreview() { clearTimeout(previewDebounce); previewDebounce = setTimeout(preview, 120); }
 async function preview() {
-  const token = ++S.previewToken;
-  $("#previewStatus").textContent = "rendering actual frame…";
-  try {
-    const r = await api("/api/preview", {project:S.project, frame:S.frame, mode:$("#realizationMode").value});
-    if (token !== S.previewToken) return;
-    $("#preview").src = r.image;
-    $("#previewStatus").textContent = `${r.mode} · ${r.frame_state.pixel_digest.slice(0,22)}…`;
-  } catch(e) {
-    if(token!==S.previewToken)return;
-    $("#previewStatus").textContent = e.message;
-    toast(e.message,true);
-  }
+  const token = ++S.previewToken; $("#previewStatus").textContent = "rendering actual frame…";
+  try { const r = await api("/api/preview", {project:S.project, frame:S.frame, mode:$("#realizationMode").value}); if (token !== S.previewToken) return; $("#preview").src = r.image; $("#previewStatus").textContent = `${r.mode} · ${r.frame_state.pixel_digest.slice(0,22)}…`; }
+  catch(e){ if(token!==S.previewToken)return; $("#previewStatus").textContent = e.message; toast(e.message,true); }
 }
 
 function bytesToBase64(buffer) {
-  const bytes = new Uint8Array(buffer);
-  const chunk = 0x8000;
-  let binary = "";
+  const bytes = new Uint8Array(buffer); const chunk = 0x8000; let binary = "";
   for (let i=0; i<bytes.length; i+=chunk) binary += String.fromCharCode(...bytes.subarray(i, Math.min(bytes.length, i+chunk)));
   return btoa(binary);
 }
 
 async function importAsset() {
-  const file = $("#assetFile").files[0];
-  if (!file) { toast("Choose a file first", true); return; }
+  const file = $("#assetFile").files[0]; if (!file) { toast("Choose a file first", true); return; }
   if (file.size > S.assetLimit) { toast(`Asset is ${Math.ceil(file.size/1024/1024)} MB; Studio intake limit is ${Math.floor(S.assetLimit/1024/1024)} MB`, true); return; }
-  const btn = $("#importAssetBtn");
-  btn.disabled = true;
-  btn.textContent = "Importing…";
+  const btn = $("#importAssetBtn"); btn.disabled = true; btn.textContent = "Importing…";
   try {
     const data = bytesToBase64(await file.arrayBuffer());
     const r = await api("/api/import", {project:S.project, name:file.name, kind:$("#assetKind").value, data});
-    S.project = r.project;
-    S.digest = r.project_digest;
-    markDirty();
-    renderAll();
-    $("#jsonEditor").value = JSON.stringify(S.project,null,2);
-    $("#evidence").textContent = JSON.stringify(r.import_receipt,null,2);
-    $("#assetFile").value = "";
-    schedulePreview();
-    toast(`Imported ${file.name}`);
-  } catch(e) {
-    toast(e.message,true);
-  } finally {
-    btn.disabled = false;
-    btn.textContent = "Import asset";
-  }
+    S.project = r.project; S.digest = r.project_digest; markDirty(); renderAll(); $("#jsonEditor").value = JSON.stringify(S.project,null,2); $("#evidence").textContent = JSON.stringify(r.import_receipt,null,2); $("#assetFile").value = ""; schedulePreview(); toast(`Imported ${file.name}`);
+  } catch(e) { toast(e.message,true); }
+  finally { btn.disabled = false; btn.textContent = "Import asset"; }
 }
 
 async function normalizeProject(showToast=true) {
-  try {
-    const r = await api("/api/normalize", {project:S.project});
-    S.project=r.project;
-    S.digest=r.project_digest;
-    if (S.frame>=S.project.duration_frames) S.frame=S.project.duration_frames-1;
-    renderAll();
-    if(showToast)toast("Canonical state valid");
-    return true;
-  } catch(e) {
-    toast(e.message,true);
-    return false;
-  }
+  try { const r = await api("/api/normalize", {project:S.project}); S.project=r.project; S.digest=r.project_digest; if (S.frame>=S.project.duration_frames) S.frame=S.project.duration_frames-1; renderAll(); if(showToast)toast("Canonical state valid"); return true; } catch(e){ toast(e.message,true); return false; }
 }
 
-async function save() {
-  if(!await normalizeProject(false))return;
-  try {
-    const r=await api("/api/save",{project:S.project});
-    S.digest=r.project_digest;
-    markDirty(false);
-    renderProjectFields();
-    $("#evidence").textContent=JSON.stringify(r,null,2);
-    toast(`Saved ${r.path}`);
-  } catch(e) {
-    toast(e.message,true);
-  }
-}
-
-async function review() {
-  try {
-    const r=await api("/api/review",{project:S.project});
-    $("#evidence").textContent=JSON.stringify(r,null,2);
-    toast("Mechanical review complete");
-  } catch(e) {
-    toast(e.message,true);
-  }
-}
-
-async function applyPrompt() {
-  const text=$("#promptText").value.trim();
-  if(!text)return;
-  try {
-    const r=await api("/api/prompt",{project:S.project,text});
-    S.project=r.project;
-    S.digest=r.project_digest;
-    markDirty();
-    renderAll();
-    $("#promptResult").textContent=JSON.stringify({status:r.plan.status,recognized:r.plan.recognized,ambiguous:r.plan.ambiguous,unresolved:r.plan.unresolved_fragments,operations:r.applied_operations},null,2);
-    schedulePreview();
-    toast(r.plan.status);
-  } catch(e) {
-    toast(e.message,true);
-  }
-}
-
-function formatElapsed(ms) {
-  const total = Math.max(0, Math.floor(Number(ms) || 0));
-  const seconds = Math.floor(total / 1000);
-  if (seconds < 60) return `${seconds}s`;
-  const minutes = Math.floor(seconds / 60);
-  const rest = seconds % 60;
-  if (minutes < 60) return `${minutes}m ${String(rest).padStart(2, "0")}s`;
-  const hours = Math.floor(minutes / 60);
-  return `${hours}h ${String(minutes % 60).padStart(2, "0")}m`;
-}
-
-function shortDigest(value) {
-  return String(value || "").replace(/^sha256:/, "").slice(0, 12) || "pending";
-}
-
-function renderSessionView(session, now = Date.now(), currentDirty = false, currentDigest = "") {
-  if (!session) {
-    return {
-      state: "READY",
-      tone: "idle",
-      elapsed: "idle",
-      detail: "Final Render validates the current project, then renders a fixed canonical snapshot. Rendering never saves edits automatically.",
-      snapshot: "created on start",
-      mode: "—",
-      receipt: "none",
-      retry: false,
-    };
-  }
-  const elapsed = formatElapsed(Math.max(0, Number(now) - Number(session.startedAt || now)));
-  const currentMoved = !!currentDirty || (!!currentDigest && currentDigest !== session.digest);
-  const editNote = currentMoved ? " Current Studio edits may be newer; this render remains bound to the submitted snapshot." : "";
-  if (session.status === "running") {
-    return {
-      state: "RENDERING LOCAL SNAPSHOT",
-      tone: "running",
-      elapsed,
-      detail: `Waiting for the local renderer. No percentage is shown because the current API does not expose truthful progress.${editNote}`,
-      snapshot: shortDigest(session.digest),
-      mode: String(session.mode || "exact").toUpperCase(),
-      receipt: "waiting",
-      retry: false,
-    };
-  }
-  if (session.status === "complete") {
-    return {
-      state: "COMPLETION RECEIPT RECEIVED",
-      tone: "complete",
-      elapsed,
-      detail: `The renderer returned a completion receipt for this submitted snapshot.${editNote}`,
-      snapshot: shortDigest(session.digest),
-      mode: String(session.mode || "exact").toUpperCase(),
-      receipt: "received",
-      retry: false,
-    };
-  }
-  return {
-    state: "NO COMPLETION RECEIPT",
-    tone: "held",
-    elapsed,
-    detail: `The request ended with an error before Studio received a completion receipt. Do not infer that output completed or failed from the missing receipt. Retry Same Snapshot preserves the submitted project, digest, mode, and digest-derived checkpoint path.${editNote}`,
-    snapshot: shortDigest(session.digest),
-    mode: String(session.mode || "exact").toUpperCase(),
-    receipt: "none",
-    retry: true,
-  };
-}
-
-function renderRenderSession() {
-  if (typeof document === "undefined") return;
-  const host = $("#renderSession");
-  if (!host) return;
-  const view = renderSessionView(S.renderSession, Date.now(), S.dirty, S.digest);
-  host.dataset.state = view.tone;
-  $("#renderSessionState").textContent = view.state;
-  $("#renderElapsed").textContent = view.elapsed;
-  $("#renderSessionDetail").textContent = view.detail;
-  $("#renderSnapshot").textContent = view.snapshot;
-  $("#renderMode").textContent = view.mode;
-  $("#renderReceipt").textContent = view.receipt;
-  const retry = $("#retryRenderBtn");
-  retry.hidden = !view.retry;
-  retry.disabled = !view.retry || S.renderSession?.status === "running";
-}
-
-function stopRenderClock() {
-  clearInterval(S.renderTimer);
-  S.renderTimer = null;
-}
-
-function startRenderClock() {
-  stopRenderClock();
-  S.renderTimer = setInterval(renderRenderSession, 250);
-}
-
-function newRenderSession(project, digestValue, mode) {
-  const short = shortDigest(digestValue);
-  return {
-    status: "running",
-    project: clone(project),
-    digest: digestValue,
-    mode,
-    name: `${project.id}-${short}`,
-    startedAt: Date.now(),
-    output: null,
-    error: null,
-  };
-}
-
-async function submitRenderSession(session) {
-  const btn=$("#renderBtn");
-  btn.disabled=true;
-  btn.textContent="Rendering…";
-  S.renderSession = session;
-  renderRenderSession();
-  startRenderClock();
-  try {
-    const r=await api("/api/render",{project:session.project,name:session.name,profile:"h264",mode:session.mode});
-    session.status="complete";
-    session.output=r.output || null;
-    session.receipt=r;
-    $("#evidence").textContent=JSON.stringify(r,null,2);
-    toast(`Render complete: ${r.output}`);
-  } catch(e) {
-    session.status="no_receipt";
-    session.error=e.message;
-    $("#evidence").textContent=JSON.stringify({display_only:"FrameState Studio render request",snapshot_digest:session.digest,mode:session.mode,completion_receipt:"NONE",error:e.message},null,2);
-    toast(`Render request ended: ${e.message}`,true);
-  } finally {
-    stopRenderClock();
-    renderRenderSession();
-    btn.disabled=false;
-    btn.textContent="Render Final";
-  }
-}
-
-async function finalRender() {
-  if(!await normalizeProject(false))return;
-  const mode=$("#realizationMode").value;
-  const session = newRenderSession(S.project, S.digest, mode);
-  await submitRenderSession(session);
-}
-
-async function retryRenderSnapshot() {
-  const previous = S.renderSession;
-  if (!previous || previous.status !== "no_receipt" || !previous.project) return;
-  const retry = {
-    ...previous,
-    status: "running",
-    project: clone(previous.project),
-    startedAt: Date.now(),
-    output: null,
-    error: null,
-    receipt: null,
-  };
-  await submitRenderSession(retry);
-}
+async function save() { if(!await normalizeProject(false))return; try{const r=await api("/api/save",{project:S.project});S.digest=r.project_digest;markDirty(false);renderProjectFields();$("#evidence").textContent=JSON.stringify(r,null,2);toast(`Saved ${r.path}`);}catch(e){toast(e.message,true);} }
+async function review() { try{const r=await api("/api/review",{project:S.project});$("#evidence").textContent=JSON.stringify(r,null,2);toast("Mechanical review complete");}catch(e){toast(e.message,true);} }
+async function applyPrompt() { const text=$("#promptText").value.trim(); if(!text)return; try{const r=await api("/api/prompt",{project:S.project,text});S.project=r.project;S.digest=r.project_digest;markDirty();renderAll();$("#promptResult").textContent=JSON.stringify({status:r.plan.status,recognized:r.plan.recognized,ambiguous:r.plan.ambiguous,unresolved:r.plan.unresolved_fragments,operations:r.applied_operations},null,2);schedulePreview();toast(r.plan.status);}catch(e){toast(e.message,true);} }
+async function finalRender() { if(!await normalizeProject(false))return; const btn=$("#renderBtn");btn.disabled=true;btn.textContent="Rendering…";try{const short=(S.digest||"").replace("sha256:","").slice(0,12);const name=`${S.project.id}-${short||"render"}`;const r=await api("/api/render",{project:S.project,name,profile:"h264",mode:$("#realizationMode").value});$("#evidence").textContent=JSON.stringify(r,null,2);toast(`Render complete: ${r.output}`);}catch(e){toast(e.message,true);}finally{btn.disabled=false;btn.textContent="Render Final";} }
 
 function togglePlay() {
-  S.playing=!S.playing;
-  $("#playBtn").textContent=S.playing?"❚❚":"▶";
-  clearInterval(S.timer);
-  if(S.playing){
-    const ms=Math.max(40,1000/S.project.canvas.fps);
-    S.timer=setInterval(()=>{
-      S.frame=(S.frame+1)%S.project.duration_frames;
-      $("#scrubber").value=S.frame;
-      renderProjectFields();
-      renderTimeline();
-      preview();
-    },ms);
-  }
+  S.playing=!S.playing; $("#playBtn").textContent=S.playing?"❚❚":"▶"; clearInterval(S.timer);
+  if(S.playing){const ms=Math.max(40,1000/S.project.canvas.fps);S.timer=setInterval(()=>{S.frame=(S.frame+1)%S.project.duration_frames;$("#scrubber").value=S.frame;renderProjectFields();renderTimeline();preview();},ms);}
 }
 
-function bindProjectInput(sel, fn) {
-  $(sel).onchange=()=>{fn();markDirty();renderAll();schedulePreview();};
-}
-
+function bindProjectInput(sel, fn) { $(sel).onchange=()=>{fn();markDirty();renderAll();schedulePreview();}; }
 function bind() {
-  $$('[data-add-layer]').forEach(b=>b.onclick=()=>addLayer(b.dataset.addLayer));
-  $("#addCaptionBtn").onclick=addCaption;
-  $("#addToneBtn").onclick=addTone;
-  $("#addSpeechBtn").onclick=addSpeech;
-  $("#duplicateBtn").onclick=duplicateSelected;
-  $("#deleteBtn").onclick=deleteSelected;
-  $("#importAssetBtn").onclick=importAsset;
-  bindProjectInput("#projectTitle",()=>S.project.title=$("#projectTitle").value);
-  bindProjectInput("#canvasW",()=>S.project.canvas.width=Number($("#canvasW").value));
-  bindProjectInput("#canvasH",()=>S.project.canvas.height=Number($("#canvasH").value));
-  bindProjectInput("#fps",()=>S.project.canvas.fps=Number($("#fps").value));
-  bindProjectInput("#duration",()=>S.project.duration_frames=Number($("#duration").value));
-  bindProjectInput("#background",()=>S.project.background=$("#background").value.split(",").map(x=>Number(x.trim())));
+  $$('[data-add-layer]').forEach(b=>b.onclick=()=>addLayer(b.dataset.addLayer)); $("#addCaptionBtn").onclick=addCaption; $("#addToneBtn").onclick=addTone; $("#addSpeechBtn").onclick=addSpeech; $("#duplicateBtn").onclick=duplicateSelected; $("#deleteBtn").onclick=deleteSelected; $("#importAssetBtn").onclick=importAsset;
+  bindProjectInput("#projectTitle",()=>S.project.title=$("#projectTitle").value); bindProjectInput("#canvasW",()=>S.project.canvas.width=Number($("#canvasW").value)); bindProjectInput("#canvasH",()=>S.project.canvas.height=Number($("#canvasH").value)); bindProjectInput("#fps",()=>S.project.canvas.fps=Number($("#fps").value)); bindProjectInput("#duration",()=>S.project.duration_frames=Number($("#duration").value)); bindProjectInput("#background",()=>S.project.background=$("#background").value.split(",").map(x=>Number(x.trim())));
   $$('[data-effect]').forEach(ch=>ch.onchange=()=>{const e=ch.dataset.effect;S.project.effects=S.project.effects.filter(x=>x!==e);if(ch.checked)S.project.effects.push(e);markDirty();schedulePreview();});
-  $("#scrubber").oninput=()=>{S.frame=Number($("#scrubber").value);renderProjectFields();renderTimeline();schedulePreview();};
-  $("#realizationMode").onchange=()=>{schedulePreview();renderRenderSession();};
-  $("#playBtn").onclick=togglePlay;
-  $("#saveBtn").onclick=save;
-  $("#reviewBtn").onclick=review;
-  $("#promptBtn").onclick=applyPrompt;
-  $("#renderBtn").onclick=finalRender;
-  $("#retryRenderBtn").onclick=retryRenderSnapshot;
+  $("#scrubber").oninput=()=>{S.frame=Number($("#scrubber").value);renderProjectFields();renderTimeline();schedulePreview();}; $("#realizationMode").onchange=schedulePreview; $("#playBtn").onclick=togglePlay;
+  $("#saveBtn").onclick=save; $("#reviewBtn").onclick=review; $("#promptBtn").onclick=applyPrompt; $("#renderBtn").onclick=finalRender;
   $("#refreshJsonBtn").onclick=()=>{$("#jsonEditor").value=JSON.stringify(S.project,null,2);toast("JSON refreshed from canonical state");};
   $("#applyJsonBtn").onclick=async()=>{try{S.project=JSON.parse($("#jsonEditor").value);if(await normalizeProject(false)){markDirty();$("#jsonEditor").value=JSON.stringify(S.project,null,2);schedulePreview();toast("JSON applied to canonical state");}}catch(e){toast(e.message,true);}};
-  document.addEventListener("keydown",e=>{
-    if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="s"){e.preventDefault();save();}
-    if(e.code==="Space"&&!["INPUT","TEXTAREA","SELECT"].includes(document.activeElement.tagName)){e.preventDefault();togglePlay();}
-  });
+  document.addEventListener("keydown",e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="s"){e.preventDefault();save();}if(e.code==="Space"&&!["INPUT","TEXTAREA","SELECT"].includes(document.activeElement.tagName)){e.preventDefault();togglePlay();}});
 }
 
 async function boot() {
-  bind();
-  try {
-    const st=await api("/api/state");
-    S.project=st.project;
-    S.digest=st.project_digest;
-    S.assetLimit=st.asset_limit_bytes||S.assetLimit;
-    S.frame=0;
-    markDirty(false);
-    renderAll();
-    $("#jsonEditor").value=JSON.stringify(S.project,null,2);
-    $("#evidence").textContent=JSON.stringify({machine:st.machine,project_path:st.project_path,asset_limit_bytes:st.asset_limit_bytes,truth_boundary:st.truth_boundary},null,2);
-    preview();
-  } catch(e) {
-    toast(e.message,true);
-    $("#evidence").textContent=e.stack||e.message;
-  }
+  bind(); try { const st=await api("/api/state");S.project=st.project;S.digest=st.project_digest;S.assetLimit=st.asset_limit_bytes||S.assetLimit;S.frame=0;markDirty(false);renderAll();$("#jsonEditor").value=JSON.stringify(S.project,null,2);$("#evidence").textContent=JSON.stringify({machine:st.machine,project_path:st.project_path,asset_limit_bytes:st.asset_limit_bytes,truth_boundary:st.truth_boundary},null,2);preview(); } catch(e){toast(e.message,true);$("#evidence").textContent=e.stack||e.message;}
 }
-
-if (typeof module !== "undefined" && module.exports) {
-  module.exports = { formatElapsed, shortDigest, renderSessionView, newRenderSession };
-} else {
-  boot();
-}
+boot();
