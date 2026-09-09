@@ -75,7 +75,7 @@ PYTHONPATH=src python -m axm_framestate gaps \
   examples/advanced_requirements.json
 ```
 
-Current checkpoint: **44/44 unit tests pass across five regression groups**: machine 17, prompt 5, rehearsal 4, native speech 5, adaptive realization/fidelity 13. Rehearsal, bounded-prompt, native-speech and adaptive-realization capability probes return READY. Native speech produces exact PCM with no speech-engine/FFmpeg dependency, while standard MP4 export remains an explicit FFmpeg boundary. Human listening feedback also established an important truth gap: the v0.8 native voice proof was not intelligible as words to the listener, so human-intelligible native speech remains explicitly unsolved.
+Current checkpoint: **49/49 unit tests pass across six regression groups**: machine 17, media-output boundary 5, prompt 5, rehearsal 4, native speech 5, adaptive realization/fidelity 13. Rehearsal, bounded-prompt, native-speech and adaptive-realization capability probes return READY. Native speech produces exact PCM with no speech-engine/FFmpeg dependency, while standard MP4 export remains an explicit FFmpeg boundary. Human listening feedback also established an important truth gap: the v0.8 native voice proof was not intelligible as words to the listener, so human-intelligible native speech remains explicitly unsolved.
 
 ## Inspect rather than trust
 
@@ -111,6 +111,7 @@ FrameState separates evidence planes deliberately:
 - canonical project state is normalized and digest-bound;
 - generated PPM frame bytes and per-frame state are exact and receipted;
 - imported media bytes are digest-bound; FFmpeg/Pillow/font and optional external-speech boundaries remain named and version/evidence receipted;
+- media identifiers are portable single path components, and generated media artifacts fail closed on path escape, symlink substitution or non-directory output components;
 - internally mixed PCM/WAV is exact for the current runtime;
 - MP4 encoding remains an external FFmpeg boundary, with no false universal bit-identical codec claim;
 - current self-growth is bounded to tested effect organs, not arbitrary self-rewriting;

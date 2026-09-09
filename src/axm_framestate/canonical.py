@@ -8,6 +8,8 @@ PROJECT_SCHEMA='axm.framestate.project/v0.5'
 
 class ProjectError(ValueError): pass
 
+_WINDOWS_DEVICE_NAMES={"CON","PRN","AUX","NUL",*(f"COM{i}" for i in range(1,10)),*(f"LPT{i}" for i in range(1,10))}
+
 def canonical_json(value:Any)->bytes:
     return json.dumps(value,sort_keys=True,separators=(',',':'),ensure_ascii=False).encode('utf-8')
 
@@ -27,6 +29,16 @@ def _text(v:Any,label:str,maxlen:int=10000)->str:
     if not isinstance(v,str) or not v.strip(): raise ProjectError(f'{label} must be non-empty text')
     if len(v)>maxlen: raise ProjectError(f'{label} too long')
     return v
+
+def _portable_path_component(v:Any,label:str,maxlen:int=200)->str:
+    value=_text(v,label,maxlen)
+    if value in {'.','..'} or any(ch in value for ch in '/\\:*?"<>|'):
+        raise ProjectError(f'{label} must be a portable single path component')
+    if any(ord(ch)<32 for ch in value) or value.endswith((' ','.')):
+        raise ProjectError(f'{label} must be a portable single path component')
+    if value.split('.',1)[0].upper() in _WINDOWS_DEVICE_NAMES:
+        raise ProjectError(f'{label} must not use a reserved device name')
+    return value
 
 def _color(v:Any,label:str,alpha:bool=False)->list[int]:
     n=4 if alpha else 3
@@ -102,7 +114,7 @@ def normalize_project(raw:Any)->dict[str,Any]:
     media=[]; mids=set()
     for i,m in enumerate(raw.get('media',[]) or []):
         if not isinstance(m,dict): raise ProjectError(f'media[{i}] invalid')
-        mid=_text(m.get('id'),f'media[{i}].id',200)
+        mid=_portable_path_component(m.get('id'),f'media[{i}].id',200)
         if mid in mids: raise ProjectError('duplicate media id')
         mids.add(mid)
         kind=_text(m.get('kind'),f'media[{i}].kind',40)

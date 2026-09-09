@@ -7,6 +7,29 @@ from .canonical import canonical_json, digest, file_digest, load_project
 
 class MediaError(RuntimeError): pass
 
+def _confined_directory(output_root:Path,*parts:str)->Path:
+    root=Path(output_root).resolve()
+    root.mkdir(parents=True,exist_ok=True)
+    current=root
+    for part in parts:
+        current=current/part
+        try: current.resolve().relative_to(root)
+        except ValueError as e: raise MediaError(f'media output escapes render root: {current}') from e
+        if current.is_symlink():
+            raise MediaError(f'media output path must not be a symlink: {current}')
+        if current.exists() and not current.is_dir():
+            raise MediaError(f'media output path must be a directory: {current}')
+        current.mkdir(exist_ok=True)
+    return current
+
+def _confined_file(output_root:Path,path:Path)->Path:
+    root=Path(output_root).resolve(); path=Path(path)
+    if path.is_symlink(): raise MediaError(f'media output file must not be a symlink: {path}')
+    if path.exists() and not path.is_file(): raise MediaError(f'media output file must be regular: {path}')
+    try: path.resolve().relative_to(root)
+    except ValueError as e: raise MediaError(f'media output escapes render root: {path}') from e
+    return path
+
 def resolve_source(root:Path, declared:str)->Path:
     p=Path(declared).expanduser()
     if p.is_absolute(): return p.resolve()
@@ -37,7 +60,7 @@ def read_ppm(path:Path)->tuple[int,int,bytes]:
     return int(parts[1]),int(parts[2]),body
 
 def conform_media(project:dict[str,Any], output_dir:Path, machine_root:Path)->dict[str,Any]:
-    output_dir=Path(output_dir); root=Path(machine_root); target=output_dir/'conformed-media'; target.mkdir(parents=True,exist_ok=True)
+    output_dir=Path(output_dir).resolve(); root=Path(machine_root); target=_confined_directory(output_dir,'conformed-media')
     rows=[]; fps=project['canvas']['fps']; cw,ch=project['canvas']['width'],project['canvas']['height']
     for m in project.get('media',[]):
         src=resolve_source(root,m['path'])
@@ -46,12 +69,12 @@ def conform_media(project:dict[str,Any], output_dir:Path, machine_root:Path)->di
         if m['kind']=='image':
             with Image.open(src) as im:
                 rgb=im.convert('RGB'); data=_ppm_bytes(rgb)
-            d=target/m['id']; d.mkdir(exist_ok=True); p=d/'frame-000000.ppm'; p.write_bytes(data)
+            d=_confined_directory(output_dir,'conformed-media',m['id']); p=_confined_file(output_dir,d/'frame-000000.ppm'); p.write_bytes(data)
             evidence.update({'width':rgb.width,'height':rgb.height,'frame_count':1,'conformed_digest':file_digest(p),'boundary':pillow_version()})
         elif m['kind']=='video':
             exe=shutil.which('ffmpeg')
             if not exe: raise MediaError('ffmpeg required for video media')
-            d=target/m['id']; d.mkdir(exist_ok=True)
+            d=_confined_directory(output_dir,'conformed-media',m['id'])
             for old in d.glob('frame-*.ppm'): old.unlink()
             cmd=[exe,'-y','-loglevel','error','-i',str(src),'-vf',f'fps={fps}','-start_number','0',str(d/'frame-%06d.ppm')]
             p=subprocess.run(cmd,capture_output=True,text=True,check=False)
@@ -67,7 +90,7 @@ def conform_media(project:dict[str,Any], output_dir:Path, machine_root:Path)->di
             child=load_project(src); evidence.update({'child_project_digest':digest(child),'boundary':'native-framestate-child'})
         rows.append(evidence)
     result={'schema':'axm.framestate.media-manifest/v0.4','rows':rows}; result['manifest_digest']=digest(result)
-    (output_dir/'media-manifest.json').write_bytes(canonical_json(result)+b'\n')
+    _confined_file(output_dir,output_dir/'media-manifest.json').write_bytes(canonical_json(result)+b'\n')
     return result
 
 class MediaCache:
@@ -107,7 +130,7 @@ class MediaCache:
         item=self.item(mid)
         if item['kind']!='framestate': raise MediaError('framestate media expected')
         path=resolve_source(self.root,item['path']); project=load_project(path)
-        child_out=self.output_dir/'child'/mid
+        child_out=_confined_directory(self.output_dir,'child',mid)
         from .receipts import render_with_receipt
         receipt=render_with_receipt(project,child_out,self.root,assemble=False)
         result={'project':project,'output':child_out,'receipt':receipt}; self._child[mid]=result; return result
