@@ -192,6 +192,69 @@ def _collect_snapshot_files(root: Path) -> list[tuple[Path, str]]:
     return files
 
 
+def _stat_signature(value: os.stat_result) -> tuple[int, int, int, int, int]:
+    return (
+        value.st_dev,
+        value.st_ino,
+        value.st_size,
+        value.st_mtime_ns,
+        value.st_ctime_ns,
+    )
+
+
+def _read_stable_source_file(path: Path, rel: str) -> bytes:
+    try:
+        before = path.lstat()
+    except FileNotFoundError as exc:
+        raise SnapshotError(f"recovery snapshot source changed during capture: {rel!r}") from exc
+    except OSError as exc:
+        raise SnapshotError(f"recovery snapshot source is unreadable: {rel!r}") from exc
+    if stat.S_ISLNK(before.st_mode) or not stat.S_ISREG(before.st_mode):
+        raise SnapshotError(f"recovery snapshot source changed during capture: {rel!r}")
+
+    try:
+        with path.open("rb") as handle:
+            opened = os.fstat(handle.fileno())
+            if not stat.S_ISREG(opened.st_mode) or (opened.st_dev, opened.st_ino) != (before.st_dev, before.st_ino):
+                raise SnapshotError(f"recovery snapshot source changed during capture: {rel!r}")
+            data = handle.read()
+            after_read = os.fstat(handle.fileno())
+        after_path = path.lstat()
+    except FileNotFoundError as exc:
+        raise SnapshotError(f"recovery snapshot source changed during capture: {rel!r}") from exc
+    except SnapshotError:
+        raise
+    except OSError as exc:
+        raise SnapshotError(f"recovery snapshot source is unreadable: {rel!r}") from exc
+
+    if (
+        _stat_signature(before) != _stat_signature(opened)
+        or _stat_signature(opened) != _stat_signature(after_read)
+        or _stat_signature(after_read) != _stat_signature(after_path)
+        or not stat.S_ISREG(after_path.st_mode)
+        or len(data) != after_read.st_size
+    ):
+        raise SnapshotError(f"recovery snapshot source changed during capture: {rel!r}")
+    return data
+
+
+def _assert_source_matches_records(root: Path, records: list[dict[str, Any]]) -> None:
+    expected = {
+        str(record["path"]): (int(record["size"]), str(record["sha256"]))
+        for record in records
+    }
+    observed_files = _collect_snapshot_files(root)
+    observed_paths = [rel for _, rel in observed_files]
+    if observed_paths != sorted(expected):
+        raise SnapshotError("recovery snapshot source changed during capture: file inventory drift")
+
+    for path, rel in observed_files:
+        data = _read_stable_source_file(path, rel)
+        observed = (len(data), "sha256:" + hashlib.sha256(data).hexdigest())
+        if observed != expected[rel]:
+            raise SnapshotError(f"recovery snapshot source changed during capture: {rel!r}")
+
+
 def create_daily_snapshot(root: Path, output_dir: Path | None = None, day: dt.date | None = None) -> dict[str, object]:
     root = Path(root).resolve()
     day = day or dt.date.today()
@@ -217,7 +280,7 @@ def create_daily_snapshot(root: Path, output_dir: Path | None = None, day: dt.da
         records: list[dict[str, Any]] = []
         with zipfile.ZipFile(temp_path, "w", compression=zipfile.ZIP_DEFLATED) as zf:
             for path, rel in files:
-                data = path.read_bytes()
+                data = _read_stable_source_file(path, rel)
                 info = zipfile.ZipInfo(rel, date_time=(1980, 1, 1, 0, 0, 0))
                 info.compress_type = zipfile.ZIP_DEFLATED
                 info.external_attr = 0o644 << 16
@@ -235,6 +298,7 @@ def create_daily_snapshot(root: Path, output_dir: Path | None = None, day: dt.da
         with temp_path.open("rb") as handle:
             os.fsync(handle.fileno())
         verify_snapshot(temp_path, expected_day=day)
+        _assert_source_matches_records(root, records)
 
         try:
             os.link(temp_path, target)
