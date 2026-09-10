@@ -42,7 +42,7 @@ For those external paths, source bytes, boundary identity and resulting conforme
 
 Known capability remains reusable. Missing capability becomes a named gap rather than a silent quality downgrade.
 
-Current live self-growth is deliberately bounded to verified effect organs and verified data-only shot-recipe organs. Both require detached replay evidence, explicit positive four-root fit and the daily recovery boundary before additive live adoption. A working bounded transition does not imply arbitrary code mutation, canon, merge or permission authority.
+Current live self-growth is deliberately bounded to verified effect organs and verified data-only shot-recipe organs. Both require detached replay evidence, explicit positive four-root fit and the daily recovery boundary before additive live adoption. The verified manifest is staged and flushed before a create-only atomic publication; concurrent actors cannot both claim one live organ reference, and an existing path is never replaced. A working bounded transition does not imply arbitrary code mutation, canon, merge or permission authority.
 
 ## Prompt influence
 

@@ -102,7 +102,7 @@ PYTHONPATH=src python -m axm_framestate adopt-effect \
   --root-fit examples/root_fit.json
 ```
 
-A candidate remains detached until replay tests pass. Supported live adoption requires visible positive fit to all four roots and establishes the daily recovery snapshot first.
+A candidate remains detached until replay tests pass. Supported live adoption requires visible positive fit to all four roots and establishes the daily recovery snapshot first. The tested manifest is then staged and file-flushed beside its destination before create-only atomic publication. If another actor publishes the same reference first, the later actor is held without replacing the winner.
 
 ## Truth boundaries
 
