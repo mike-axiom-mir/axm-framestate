@@ -6,6 +6,7 @@ import tempfile
 import unittest
 import zipfile
 from pathlib import Path
+from unittest import mock
 
 from axm_framestate.forge import adopt_effect, spawn_effect
 from axm_framestate.snapshot import SNAPSHOT_SCHEMA, SnapshotError, create_daily_snapshot, verify_snapshot
@@ -83,6 +84,58 @@ class SnapshotContractTests(unittest.TestCase):
                 self.fail("recovery snapshot admitted a source-tree symlink")
 
             self.assertFalse(target.exists())
+
+    def test_source_content_drift_during_capture_blocks_publication(self):
+        with tempfile.TemporaryDirectory() as raw:
+            td = Path(raw)
+            root = self.make_root(td)
+            out = td / "snapshots"
+            target = out / f"AXM_FrameState_{DAY.isoformat()}.zip"
+            original_writestr = zipfile.ZipFile.writestr
+            changed = False
+
+            def racing_writestr(archive, member, data, *args, **kwargs):
+                nonlocal changed
+                result = original_writestr(archive, member, data, *args, **kwargs)
+                name = member.filename if isinstance(member, zipfile.ZipInfo) else str(member)
+                if name == "nested/state.json" and not changed:
+                    (root / "nested" / "state.json").write_text('{"v":2}', encoding="utf-8")
+                    changed = True
+                return result
+
+            with mock.patch.object(zipfile.ZipFile, "writestr", new=racing_writestr):
+                with self.assertRaisesRegex(SnapshotError, "source changed during capture"):
+                    create_daily_snapshot(root, out, DAY)
+
+            self.assertTrue(changed)
+            self.assertFalse(target.exists())
+            self.assertEqual(list(out.glob("*.tmp")), [])
+
+    def test_source_inventory_drift_during_capture_blocks_publication(self):
+        with tempfile.TemporaryDirectory() as raw:
+            td = Path(raw)
+            root = self.make_root(td)
+            out = td / "snapshots"
+            target = out / f"AXM_FrameState_{DAY.isoformat()}.zip"
+            original_writestr = zipfile.ZipFile.writestr
+            changed = False
+
+            def racing_writestr(archive, member, data, *args, **kwargs):
+                nonlocal changed
+                result = original_writestr(archive, member, data, *args, **kwargs)
+                name = member.filename if isinstance(member, zipfile.ZipInfo) else str(member)
+                if name == "nested/state.json" and not changed:
+                    (root / "late-state.txt").write_text("late", encoding="utf-8")
+                    changed = True
+                return result
+
+            with mock.patch.object(zipfile.ZipFile, "writestr", new=racing_writestr):
+                with self.assertRaisesRegex(SnapshotError, "source changed during capture"):
+                    create_daily_snapshot(root, out, DAY)
+
+            self.assertTrue(changed)
+            self.assertFalse(target.exists())
+            self.assertEqual(list(out.glob("*.tmp")), [])
 
     def test_valid_zip_with_changed_member_is_rejected_by_tree_digest(self):
         with tempfile.TemporaryDirectory() as raw:
