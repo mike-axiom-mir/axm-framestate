@@ -99,20 +99,48 @@ jobs:
         run: |
           python -m venv "$RUNNER_TEMP/framestate-venv"
           "$RUNNER_TEMP/framestate-venv/bin/python" -m pip install --no-deps --no-build-isolation ./framestate
-      - name: Admit exact replay and render through installed FrameState
+      - name: Admit exact replay through installed FrameState
+        id: admit
+        shell: bash
         run: |
           HASH="$(cat "$RUNNER_TEMP/receipt-hash.txt")"
           cd "$RUNNER_TEMP"
+          set +e
           "$RUNNER_TEMP/framestate-venv/bin/python" -m axm_framestate.echoworld_bridge \
             echoworld-receipt.json \
             --expected-receipt-hash "$HASH" \
             --output echoworld-project.json \
             > framestate-admission.json
+          status=$?
+          set -e
+          cat framestate-admission.json
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          error=$(python - <<'PY'
+          import json, os
+          from pathlib import Path
+          p = Path(os.environ["RUNNER_TEMP"]) / "framestate-admission.json"
+          try:
+              value = json.loads(p.read_text())
+              print(str(value.get("error", "none")).replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A"))
+          except Exception:
+              print("unreadable-admission-output")
+          PY
+          )
+          echo "error=$error" >> "$GITHUB_OUTPUT"
+      - name: "Admission gate — ${{ steps.admit.outputs.error }}"
+        if: steps.admit.outputs.status != '0'
+        run: exit 1
+      - name: Render admitted project twice through installed FrameState
+        if: steps.admit.outputs.status == '0'
+        run: |
+          cd "$RUNNER_TEMP"
           "$RUNNER_TEMP/framestate-venv/bin/framestate" verify-repeat \
             echoworld-project.json \
             echoworld-render \
             > framestate-repeat.json
+          cat framestate-repeat.json
       - name: Independently inspect provider-to-render evidence
+        if: steps.admit.outputs.status == '0'
         run: |
           python - <<'PY'
           import hashlib, json, os
@@ -159,6 +187,7 @@ jobs:
           print(json.dumps(evidence, indent=2, sort_keys=True))
           PY
       - name: Retain interoperability evidence
+        if: steps.admit.outputs.status == '0'
         uses: actions/upload-artifact@v4
         with:
           name: echoworld-framestate-proof
