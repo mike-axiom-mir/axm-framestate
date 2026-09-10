@@ -1,0 +1,171 @@
+name: EchoWorld replay visual consumer
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  consumer-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.11", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Install existing media compatibility boundary
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes ffmpeg
+          python -m pip install Pillow==12.3.0
+      - name: Compile bridge
+        run: python -m py_compile src/axm_framestate/echoworld_bridge.py tests/test_echoworld_bridge.py
+      - name: Verify fail-closed EchoWorld consumer contract
+        env:
+          PYTHONPATH: src
+        run: python -m unittest tests.test_echoworld_bridge -v
+      - name: Verify complete FrameState suite
+        env:
+          PYTHONPATH: src
+        run: python -m unittest discover -s tests -v
+      - name: Verify exact-base diff whitespace
+        if: github.event_name == 'pull_request'
+        run: git diff --check "${{ github.event.pull_request.base.sha }}..HEAD"
+
+  real-provider-render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout exact FrameState review head
+        uses: actions/checkout@v4
+        with:
+          path: framestate
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      - name: Checkout exact EchoWorld provider
+        uses: actions/checkout@v4
+        with:
+          repository: mike-axiom-mir/axm-EchoWorld
+          ref: ea7c3b654a05de19a40a4e7b3a17ffa05cf9d800
+          path: echoworld
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Verify pinned provider source and complete suite
+        run: |
+          test "$(git -C echoworld rev-parse HEAD)" = "ea7c3b654a05de19a40a4e7b3a17ffa05cf9d800"
+          cd echoworld
+          npm test
+      - name: Pack and install EchoWorld into an unrelated local consumer
+        run: |
+          mkdir -p "$RUNNER_TEMP/echoworld-pack" "$RUNNER_TEMP/echoworld-consumer"
+          (cd echoworld && npm pack --ignore-scripts --pack-destination "$RUNNER_TEMP/echoworld-pack")
+          npm install --prefix "$RUNNER_TEMP/echoworld-consumer" --offline --ignore-scripts "$RUNNER_TEMP/echoworld-pack/"*.tgz
+      - name: Produce and replay-verify genuine EchoWorld evidence
+        run: |
+          BIN="$RUNNER_TEMP/echoworld-consumer/node_modules/.bin/echoworld-replay"
+          "$BIN" example > "$RUNNER_TEMP/echoworld-input.json"
+          "$BIN" run "$RUNNER_TEMP/echoworld-input.json" > "$RUNNER_TEMP/echoworld-receipt.json"
+          "$BIN" verify "$RUNNER_TEMP/echoworld-receipt.json" > "$RUNNER_TEMP/echoworld-verification.json"
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          root = Path(os.environ["RUNNER_TEMP"])
+          receipt = json.loads((root / "echoworld-receipt.json").read_text())
+          verification = json.loads((root / "echoworld-verification.json").read_text())
+          assert verification["schema"] == "axm.echoworld.portable-replay-verification/v0.01"
+          assert verification["verified"] is True
+          assert verification["receiptHash"] == receipt["receiptHash"]
+          assert verification["finalCanonicalHash"] == receipt["memoryEnabled"]["finalCanonicalHash"]
+          assert verification["canonicalEquivalent"] is True
+          assert not any(verification["authority"].values())
+          (root / "receipt-hash.txt").write_text(receipt["receiptHash"] + "\n")
+          PY
+      - name: Install FrameState consumer without runtime dependencies
+        run: |
+          python -m venv "$RUNNER_TEMP/framestate-venv"
+          "$RUNNER_TEMP/framestate-venv/bin/python" -m pip install --no-deps --no-build-isolation ./framestate
+      - name: Admit exact replay and render through installed FrameState
+        run: |
+          HASH="$(cat "$RUNNER_TEMP/receipt-hash.txt")"
+          cd "$RUNNER_TEMP"
+          "$RUNNER_TEMP/framestate-venv/bin/python" -m axm_framestate.echoworld_bridge \
+            echoworld-receipt.json \
+            --expected-receipt-hash "$HASH" \
+            --output echoworld-project.json \
+            > framestate-admission.json
+          "$RUNNER_TEMP/framestate-venv/bin/framestate" verify-repeat \
+            echoworld-project.json \
+            echoworld-render \
+            > framestate-repeat.json
+      - name: Independently inspect provider-to-render evidence
+        run: |
+          python - <<'PY'
+          import hashlib, json, os
+          from pathlib import Path
+
+          root = Path(os.environ["RUNNER_TEMP"])
+          receipt = json.loads((root / "echoworld-receipt.json").read_text())
+          provider = json.loads((root / "echoworld-verification.json").read_text())
+          admission = json.loads((root / "framestate-admission.json").read_text())
+          project = json.loads((root / "echoworld-project.json").read_text())
+          repeat = json.loads((root / "framestate-repeat.json").read_text())
+          frame_manifest = json.loads((root / "echoworld-render/repeat-a/frame-manifest.json").read_text())
+
+          bridge = project["metadata"]["axmEchoWorldProjection"]
+          assert provider["verified"] is True
+          assert admission["status"] == "READY_FOR_RENDER"
+          assert bridge["sourceReceiptHash"] == receipt["receiptHash"]
+          assert bridge["sourceFinalCanonicalHash"] == receipt["memoryEnabled"]["finalCanonicalHash"]
+          assert not any(admission["authority"].values())
+          assert not any(bridge["authority"].values())
+          assert repeat["passed"] is True
+          assert repeat["project_digest"] == admission["projectDigest"]
+          assert frame_manifest["frame_count"] == 1
+          assert len(frame_manifest["states"]) == 1
+          assert len(frame_manifest["files"]) == 1
+
+          evidence = {
+              "schema": "axm.framestate.echoworld-cross-repo-proof/v0.1",
+              "echoWorldProviderHead": "ea7c3b654a05de19a40a4e7b3a17ffa05cf9d800",
+              "sourceReceiptHash": receipt["receiptHash"],
+              "sourceFinalCanonicalHash": receipt["memoryEnabled"]["finalCanonicalHash"],
+              "frameStateProjectDigest": admission["projectDigest"],
+              "projectionDigest": admission["projectionDigest"],
+              "frameManifestDigest": repeat["frame_manifest_digest"],
+              "providerReplayVerified": True,
+              "frameStateRepeatVerified": True,
+              "authority": admission["authority"],
+          }
+          raw = json.dumps(evidence, sort_keys=True, separators=(",", ":")).encode()
+          evidence["evidenceSha256"] = hashlib.sha256(raw).hexdigest()
+          (root / "echoworld-framestate-proof.json").write_text(
+              json.dumps(evidence, indent=2, sort_keys=True) + "\n"
+          )
+          print(json.dumps(evidence, indent=2, sort_keys=True))
+          PY
+      - name: Retain interoperability evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: echoworld-framestate-proof
+          path: |
+            ${{ runner.temp }}/echoworld-receipt.json
+            ${{ runner.temp }}/echoworld-verification.json
+            ${{ runner.temp }}/echoworld-project.json
+            ${{ runner.temp }}/framestate-admission.json
+            ${{ runner.temp }}/framestate-repeat.json
+            ${{ runner.temp }}/echoworld-framestate-proof.json
