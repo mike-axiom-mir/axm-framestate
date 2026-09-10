@@ -1,10 +1,9 @@
-name: Forge receipt truth
+name: Recovery snapshot integrity
 
 on:
   pull_request:
   push:
-    branches:
-      - main
+    branches: [main]
 
 permissions:
   contents: read
@@ -23,7 +22,11 @@ jobs:
           sudo apt-get update
           sudo apt-get install --yes ffmpeg
           python -m pip install Pillow==12.3.0
-      - name: Verify complete deterministic suite
+      - name: Verify recovery snapshot contract
+        env:
+          PYTHONPATH: src
+        run: python -m unittest tests.test_snapshot_contract -v
+      - name: Verify complete current suite
         env:
           PYTHONPATH: src
         run: python -m unittest discover -s tests -v
