@@ -2,11 +2,15 @@ from __future__ import annotations
 
 import json
 import tempfile
+import threading
 import unittest
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+from unittest import mock
 
 from axm_framestate.canonical import digest
 from axm_framestate.forge import ForgeError, adopt_effect, adopt_recipe, spawn_effect, spawn_recipe
+from axm_framestate.snapshot import create_daily_snapshot
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -88,6 +92,37 @@ class ForgeReceiptIntegrityTests(unittest.TestCase):
             raw, _, candidate = self._spawn(temporary, "lower_third.recipe.json", spawn_recipe)
             result = adopt_recipe(self._machine(temporary), candidate, "valid receipt", raw["root_fit"])
             self.assertTrue(result["adopted"])
+
+    def test_concurrent_adoptions_publish_exactly_one_live_organ(self):
+        cases = (
+            ("posterize.effect.json", spawn_effect, adopt_effect, "effect-organs"),
+            ("lower_third.recipe.json", spawn_recipe, adopt_recipe, "recipe-organs"),
+        )
+        for example, spawn, adopt, organ_directory in cases:
+            with self.subTest(example=example), tempfile.TemporaryDirectory() as directory:
+                temporary = Path(directory)
+                raw, _, candidate = self._spawn(temporary, example, spawn)
+                machine = self._machine(temporary)
+                snapshot_barrier = threading.Barrier(2)
+
+                def synchronized_snapshot(*args, **kwargs):
+                    recovery = create_daily_snapshot(*args, **kwargs)
+                    snapshot_barrier.wait(timeout=5)
+                    return recovery
+
+                def run_adoption(index: int):
+                    return adopt(machine, candidate, f"concurrent adoption {index}", raw["root_fit"])
+
+                with mock.patch("axm_framestate.forge.create_daily_snapshot", new=synchronized_snapshot):
+                    with ThreadPoolExecutor(max_workers=2) as executor:
+                        results = list(executor.map(run_adoption, range(2)))
+
+                adopted = [result for result in results if result["adopted"]]
+                held = [result for result in results if result["truth_status"] == "HOLD_REF_COLLISION"]
+                self.assertEqual(len(adopted), 1)
+                self.assertEqual(len(held), 1)
+                installed = list((machine / organ_directory).glob("*.json"))
+                self.assertEqual(len(installed), 1)
 
 
 if __name__ == "__main__":
