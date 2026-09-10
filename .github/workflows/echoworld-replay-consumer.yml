@@ -131,16 +131,36 @@ jobs:
         if: steps.admit.outputs.status != '0'
         run: exit 1
       - name: Render admitted project twice through installed FrameState
+        id: render
         if: steps.admit.outputs.status == '0'
+        shell: bash
         run: |
           cd "$RUNNER_TEMP"
+          set +e
           "$RUNNER_TEMP/framestate-venv/bin/framestate" verify-repeat \
             echoworld-project.json \
             echoworld-render \
-            > framestate-repeat.json
-          cat framestate-repeat.json
+            > framestate-repeat.json 2> framestate-render-error.txt
+          status=$?
+          set -e
+          cat framestate-repeat.json || true
+          cat framestate-render-error.txt || true
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          error=$(python - <<'PY'
+          import os
+          from pathlib import Path
+          p = Path(os.environ["RUNNER_TEMP"]) / "framestate-render-error.txt"
+          text = p.read_text(errors="replace").strip().splitlines()
+          value = text[-1] if text else "none"
+          print(value.replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A"))
+          PY
+          )
+          echo "error=$error" >> "$GITHUB_OUTPUT"
+      - name: "Render gate — ${{ steps.render.outputs.error }}"
+        if: steps.admit.outputs.status == '0' && steps.render.outputs.status != '0'
+        run: exit 1
       - name: Independently inspect provider-to-render evidence
-        if: steps.admit.outputs.status == '0'
+        if: steps.admit.outputs.status == '0' && steps.render.outputs.status == '0'
         run: |
           python - <<'PY'
           import hashlib, json, os
@@ -187,7 +207,7 @@ jobs:
           print(json.dumps(evidence, indent=2, sort_keys=True))
           PY
       - name: Retain interoperability evidence
-        if: steps.admit.outputs.status == '0'
+        if: steps.admit.outputs.status == '0' && steps.render.outputs.status == '0'
         uses: actions/upload-artifact@v4
         with:
           name: echoworld-framestate-proof
