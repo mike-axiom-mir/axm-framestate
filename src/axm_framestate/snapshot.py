@@ -170,6 +170,28 @@ def _fsync_directory(path: Path) -> bool:
         os.close(fd)
 
 
+def _collect_snapshot_files(root: Path) -> list[tuple[Path, str]]:
+    files: list[tuple[Path, str]] = []
+    for path in sorted(root.rglob("*")):
+        rel = path.relative_to(root)
+        if any(part in EXCLUDED_PARTS for part in rel.parts):
+            continue
+        try:
+            mode = path.lstat().st_mode
+        except FileNotFoundError as exc:
+            raise SnapshotError(f"recovery snapshot source changed during enumeration: {rel.as_posix()!r}") from exc
+        except OSError as exc:
+            raise SnapshotError(f"recovery snapshot source is unreadable: {rel.as_posix()!r}") from exc
+        if stat.S_ISLNK(mode):
+            raise SnapshotError(f"recovery snapshot source tree contains symlink {rel.as_posix()!r}")
+        if stat.S_ISDIR(mode):
+            continue
+        if not stat.S_ISREG(mode):
+            raise SnapshotError(f"recovery snapshot source tree contains non-regular entry {rel.as_posix()!r}")
+        files.append((path, rel.as_posix()))
+    return files
+
+
 def create_daily_snapshot(root: Path, output_dir: Path | None = None, day: dt.date | None = None) -> dict[str, object]:
     root = Path(root).resolve()
     day = day or dt.date.today()
@@ -186,14 +208,7 @@ def create_daily_snapshot(root: Path, output_dir: Path | None = None, day: dt.da
             "directory_fsync": None,
         }
 
-    files: list[tuple[Path, str]] = []
-    for path in sorted(root.rglob("*")):
-        if not path.is_file():
-            continue
-        rel = path.relative_to(root)
-        if any(part in EXCLUDED_PARTS for part in rel.parts):
-            continue
-        files.append((path, rel.as_posix()))
+    files = _collect_snapshot_files(root)
 
     fd, temp_name = tempfile.mkstemp(prefix=f".{target.name}.", suffix=".tmp", dir=out_dir)
     os.close(fd)
