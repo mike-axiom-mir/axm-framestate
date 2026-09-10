@@ -58,6 +58,32 @@ class SnapshotContractTests(unittest.TestCase):
             self.assertEqual(second["publication"], "EXISTING_VERIFIED")
             self.assertEqual(second["digest"], first["digest"])
 
+    def test_source_symlink_cannot_pull_external_bytes_into_recovery_snapshot(self):
+        with tempfile.TemporaryDirectory() as raw:
+            td = Path(raw)
+            root = self.make_root(td)
+            outside = td / "outside-secret.txt"
+            outside.write_bytes(b"outside-secret-must-not-enter-recovery")
+            leak = root / "linked-secret.txt"
+            try:
+                leak.symlink_to(outside)
+            except (OSError, NotImplementedError):
+                self.skipTest("symlinks unavailable")
+
+            out = td / "snapshots"
+            target = out / f"AXM_FrameState_{DAY.isoformat()}.zip"
+            try:
+                create_daily_snapshot(root, out, DAY)
+            except SnapshotError as exc:
+                self.assertIn("source tree contains symlink", str(exc))
+            else:
+                with zipfile.ZipFile(target, "r") as zf:
+                    leaked = zf.read("linked-secret.txt")
+                self.assertNotEqual(leaked, outside.read_bytes(), "external source bytes were archived through a symlink")
+                self.fail("recovery snapshot admitted a source-tree symlink")
+
+            self.assertFalse(target.exists())
+
     def test_valid_zip_with_changed_member_is_rejected_by_tree_digest(self):
         with tempfile.TemporaryDirectory() as raw:
             td = Path(raw)
