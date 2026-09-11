@@ -328,6 +328,7 @@ def render_frame(project:dict[str,Any],frame:int,library:dict[str,EffectOrgan],c
     state.setdefault('realization',{})['internal_sample_scale']=scale
     state['realization']['internal_pixel_samples_per_output_pixel']=scale*scale
     state['realization']['texture_filter']=str(ropts.get('texture_filter','nearest'))
+    state.pop('state_digest',None)
     state['state_digest']=digest(state)
     return ppm,state
 

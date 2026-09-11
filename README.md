@@ -71,9 +71,15 @@ The rehearsal fabric repeatedly renders/simulates the candidate, inspects bounde
 PYTHONPATH=src python -m unittest discover -s tests -v
 PYTHONPATH=src python -m axm_framestate verify-repeat \
   examples/advanced_mix.json renders/verify-advanced
+PYTHONPATH=src python -m axm_framestate verify-render \
+  renders/day-one \
+  --receipt-digest sha256:<caller-pinned-render-receipt-digest> \
+  --project-digest sha256:<caller-pinned-canonical-project-digest>
 PYTHONPATH=src python -m axm_framestate gaps \
   examples/advanced_requirements.json
 ```
+
+`verify-render` is an offline, read-only admission boundary for already-produced output. It checks caller-owned receipt and project pins, canonical/versioned manifests, every declared frame and its exact inventory, audio, captions, optional video, and adaptive-realization inputs without rerendering. Its verification receipt grants evidence-admission authority only: it does not make rendered pixels canonical project state, authenticate authorship, publish output, or grant merge/CANON authority. Metadata reads are bounded to 64 MiB per document and render artifacts are hashed incrementally.
 
 Current checkpoint: **44/44 unit tests pass across five regression groups**: machine 17, prompt 5, rehearsal 4, native speech 5, adaptive realization/fidelity 13. Rehearsal, bounded-prompt, native-speech and adaptive-realization capability probes return READY. Native speech produces exact PCM with no speech-engine/FFmpeg dependency, while standard MP4 export remains an explicit FFmpeg boundary. Human listening feedback also established an important truth gap: the v0.8 native voice proof was not intelligible as words to the listener, so human-intelligible native speech remains explicitly unsolved.
 

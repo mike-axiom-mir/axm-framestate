@@ -89,6 +89,7 @@ class RenderOutputVerificationTests(unittest.TestCase):
             receipt_path = output / "render-receipt.json"
             changed = json.loads(receipt_path.read_text(encoding="utf-8"))
             changed["project_id"] = "substituted"
+            changed.pop("receipt_digest")
             changed["receipt_digest"] = _stable_receipt_digest(changed)
             receipt_path.write_bytes(canonical_json(changed) + b"\n")
 
@@ -99,7 +100,7 @@ class RenderOutputVerificationTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as raw:
             root = Path(raw)
             output = root / "realized"
-            machine = json.loads((ROOT / "examples" / "machine_low.json").read_text(encoding="utf-8"))
+            machine = json.loads((ROOT / "examples" / "machine_high.json").read_text(encoding="utf-8"))
             policy = json.loads((ROOT / "examples" / "realization_policy.json").read_text(encoding="utf-8"))
             receipt = render_realized_with_receipt(
                 self.project, output, ROOT, machine, policy, assemble=False
