@@ -14,6 +14,7 @@ The declaration is generated from the existing package metadata plus FrameState'
 - `src/axm_framestate/capabilities.py`
 - `src/axm_framestate/canonical.py`
 - `src/axm_framestate/cli.py`
+- `src/axm_framestate/media.py`
 - `LICENSE`
 
 The generated registry and receipt are checked with:
@@ -21,14 +22,25 @@ The generated registry and receipt are checked with:
 ```bash
 python tools/generate_public_capabilities.py --check
 python -m unittest discover -s tests -p 'test_public_capability_discovery.py' -v
-PYTHONPATH=src python -m axm_framestate capabilities
 ```
 
 The public record intentionally keeps `status: null`. FrameState's capability map classifies individual capabilities as `executable`, `rendered`, `tested`, `external-boundary`, or `gap`; that is not the same thing as one repository-wide maturity label, so discovery does not invent one.
 
-## What the runtime fields mean
+## Current v0.10 CLI import boundary
 
-`dependencies: 0` describes the Python package's declared runtime dependency list. It does **not** erase FrameState's explicit optional/external boundaries. The real capability map still names FFmpeg, Pillow/FreeType, eSpeak, imported media, and other external boundaries where they apply. Discovery consumers should inspect the capability map before assuming a particular project path is dependency-free.
+The first hosted proof caught a real packaging/runtime truth gap instead of hiding it: current `main` declares no Python package dependencies, but `framestate capabilities` imports the main CLI graph, which reaches `src/axm_framestate/media.py`; that module currently imports `Pillow` at module load time.
+
+The public declaration therefore distinguishes:
+
+- `declaredPackageDependencies: 0` — what current `pyproject.toml` says;
+- `dependencies: 1` and `externalPythonPackages: ["Pillow"]` — what the current v0.10 CLI import path actually needs to run;
+- `currentCliImportBoundary: Pillow-required-on-v0.10-main` — an explicit source-backed warning rather than a silent dependency claim.
+
+CI installs the same Pillow 12.3.0 compatibility boundary already used by FrameState's repository verification before exercising the real `framestate capabilities` command.
+
+This lane does **not** repair that import topology. Open FrameState PR #3 already owns the distinct Studio/package continuation and explicitly makes Pillow lazy/optional; duplicating that runtime change here would create semantic overlap. If that work lands, this generated declaration is designed to fail closed until the public runtime mapping is reviewed and regenerated against the new package truth.
+
+FrameState's capability map also continues to name FFmpeg, Pillow/FreeType, eSpeak, imported media, and other external boundaries where they apply. Public discovery does not flatten those per-capability distinctions into one unsupported “fully dependency-free machine” story.
 
 `network: false`, `account: false`, and `aiModel: false` mean the declared local FrameState machine does not require those services merely to exist or expose its local deterministic contracts. They do not claim that every possible caller-supplied asset or external compatibility tool is offline by nature.
 
