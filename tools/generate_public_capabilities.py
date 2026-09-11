@@ -22,6 +22,7 @@ PACKAGE_PATH = "pyproject.toml"
 CAPABILITY_MAP_PATH = "src/axm_framestate/capabilities.py"
 CANONICAL_PATH = "src/axm_framestate/canonical.py"
 CLI_PATH = "src/axm_framestate/cli.py"
+MEDIA_PATH = "src/axm_framestate/media.py"
 LICENSE_PATH = "LICENSE"
 REGISTRY_PATH = "registry/capabilities.jsonl"
 RECEIPT_PATH = "registry/capabilities.receipt.json"
@@ -36,6 +37,7 @@ SOURCE_PATHS = (
     CAPABILITY_MAP_PATH,
     CANONICAL_PATH,
     CLI_PATH,
+    MEDIA_PATH,
     LICENSE_PATH,
 )
 
@@ -167,7 +169,7 @@ def validate_package(root: Path) -> dict[str, Any]:
     if project.get("requires-python") != ">=3.11":
         raise DiscoveryError("Python runtime boundary drift")
     if project.get("dependencies") != []:
-        raise DiscoveryError("runtime dependency boundary drift")
+        raise DiscoveryError("declared package dependency boundary drift")
     if project.get("license") != {"text": "Apache-2.0"}:
         raise DiscoveryError("package license declaration drift")
     scripts = project.get("scripts")
@@ -177,6 +179,15 @@ def validate_package(root: Path) -> dict[str, Any]:
     if "Apache License" not in license_text or "Version 2.0, January 2004" not in license_text:
         raise DiscoveryError("Apache-2.0 license evidence drift")
     return project
+
+
+def validate_current_cli_import_boundary(root: Path) -> None:
+    media_source = regular_file(root, MEDIA_PATH).read_text(encoding="utf-8")
+    if "from PIL import Image" not in media_source:
+        raise DiscoveryError("current CLI Pillow import boundary drift; review public runtime mapping")
+    cli_source = regular_file(root, CLI_PATH).read_text(encoding="utf-8")
+    if "from .receipts import" not in cli_source:
+        raise DiscoveryError("current CLI import graph drift; review public runtime mapping")
 
 
 def validate_capability_map(root: Path) -> dict[str, Any]:
@@ -203,6 +214,7 @@ def build_artifacts(root: Path | str = Path.cwd()) -> dict[str, str]:
     root = Path(root)
     validate_marker(root)
     project = validate_package(root)
+    validate_current_cli_import_boundary(root)
     capability_map = validate_capability_map(root)
     sources = [source_record(root, relative_path) for relative_path in SOURCE_PATHS]
 
@@ -218,7 +230,9 @@ def build_artifacts(root: Path | str = Path.cwd()) -> dict[str, str]:
         "runtime": {
             "language": "python",
             "minimumVersion": "3.11",
-            "dependencies": 0,
+            "dependencies": 1,
+            "declaredPackageDependencies": 0,
+            "externalPythonPackages": ["Pillow"],
             "network": False,
             "account": False,
             "aiModel": False,
@@ -231,12 +245,14 @@ def build_artifacts(root: Path | str = Path.cwd()) -> dict[str, str]:
         "contracts": {
             "capabilityMap": capability_map["schema"],
             "canonicalProject": PROJECT_SCHEMA,
+            "currentCliImportBoundary": "Pillow-required-on-v0.10-main",
         },
         "source": {
             "metadata": PACKAGE_PATH,
             "capabilityMap": CAPABILITY_MAP_PATH,
             "canonicalProject": CANONICAL_PATH,
             "command": CLI_PATH,
+            "cliMediaImportBoundary": MEDIA_PATH,
             "license": LICENSE_PATH,
         },
         "authority": {
@@ -282,6 +298,7 @@ def build_artifacts(root: Path | str = Path.cwd()) -> dict[str, str]:
             "source_backed": True,
             "public_export_intent": True,
             "runtime_proof": False,
+            "current_cli_external_python_boundary": ["Pillow"],
             "execution_authority": False,
             "automatic_selection_authority": False,
             "automatic_install_authority": False,
