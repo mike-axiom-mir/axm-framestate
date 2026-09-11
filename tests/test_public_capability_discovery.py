@@ -37,9 +37,12 @@ class PublicCapabilityDiscoveryTests(unittest.TestCase):
         self.assertIsNone(record["status"])
         self.assertEqual(record["providers"], [discovery.REPOSITORY])
         self.assertFalse(record["runtime"]["network"])
-        self.assertEqual(record["runtime"]["dependencies"], 0)
+        self.assertEqual(record["runtime"]["dependencies"], 1)
+        self.assertEqual(record["runtime"]["declaredPackageDependencies"], 0)
+        self.assertEqual(record["runtime"]["externalPythonPackages"], ["Pillow"])
         self.assertEqual(record["contracts"]["capabilityMap"], discovery.CAPABILITY_MAP_SCHEMA)
         self.assertEqual(record["contracts"]["canonicalProject"], discovery.PROJECT_SCHEMA)
+        self.assertEqual(record["contracts"]["currentCliImportBoundary"], "Pillow-required-on-v0.10-main")
         self.assertEqual(
             record["authority"],
             {
@@ -63,6 +66,7 @@ class PublicCapabilityDiscoveryTests(unittest.TestCase):
             receipt_hash,
             hashlib.sha256(discovery.canonical_json(body).encode("utf-8")).hexdigest(),
         )
+        self.assertEqual(receipt["truth_boundary"]["current_cli_external_python_boundary"], ["Pillow"])
         for source in receipt["sources"]:
             raw = (ROOT / source["path"]).read_bytes()
             self.assertEqual(source["git_blob_sha1"], discovery.git_blob_sha1(raw))
@@ -97,6 +101,15 @@ class PublicCapabilityDiscoveryTests(unittest.TestCase):
             )
             path.write_text(text, encoding="utf-8")
             with self.assertRaisesRegex(discovery.DiscoveryError, "version drift"):
+                discovery.build_artifacts(root)
+
+    def test_current_cli_pillow_boundary_drift_holds_generation(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = fixture(Path(tmp))
+            path = root / discovery.MEDIA_PATH
+            text = path.read_text(encoding="utf-8").replace("from PIL import Image", "# Pillow import removed", 1)
+            path.write_text(text, encoding="utf-8")
+            with self.assertRaisesRegex(discovery.DiscoveryError, "Pillow import boundary drift"):
                 discovery.build_artifacts(root)
 
     def test_capability_map_anchor_drift_holds_generation(self) -> None:
