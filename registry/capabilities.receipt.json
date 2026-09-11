@@ -1,0 +1,63 @@
+{
+  "schema": "axm.public-capability-registry-receipt/v1",
+  "repository": "mike-axiom-mir/axm-framestate",
+  "registry": {
+    "path": "registry/capabilities.jsonl",
+    "sha256": "ebb288c1e8e4038be3ad2d091bcc0005b63f4c3f010d131157f0ab322101ac42",
+    "capability_count": 1,
+    "capability_ids": [
+      "axm.framestate.local-deterministic-video-machine"
+    ]
+  },
+  "sources": [
+    {
+      "path": "pyproject.toml",
+      "git_blob_sha1": "e7092cdc7c33fa6e665ce56a45213478d04caf15"
+    },
+    {
+      "path": "src/axm_framestate/capabilities.py",
+      "git_blob_sha1": "1f21bf9ac914df07f9e4e2163bb2826951de3b7f"
+    },
+    {
+      "path": "src/axm_framestate/canonical.py",
+      "git_blob_sha1": "f170638ab49f9c87932af942d964c74639618b46"
+    },
+    {
+      "path": "src/axm_framestate/cli.py",
+      "git_blob_sha1": "4d5e6a4a5f8057b913e2c831ba28f8fa9892ac71"
+    },
+    {
+      "path": "LICENSE",
+      "git_blob_sha1": "261eeb9e9f8b2b4b0d119366dda99c6fd7d35c64"
+    }
+  ],
+  "compatibility": {
+    "consumer": "mike-axiom-mir/axm-discovery-buddy",
+    "pinned_ref": "565c38ecf93a9d563b02211258d8d36fcb1162b5",
+    "portable_boundary": "discovery-buddy.pyz",
+    "marker_contract": "axm.discovery-public/v1",
+    "registry_contract": "registry/*capabilit*.jsonl"
+  },
+  "pattern_provenance": {
+    "adapted_from_repository": "mike-axiom-mir/axm-casual-loop",
+    "adapted_from_ref": "f561a8a325444be30ad0b4fee412b3958aa1f1ee",
+    "adapted_paths": [
+      ".axm/discovery-public.json",
+      "tools/generate_public_capabilities.py",
+      ".github/workflows/public-capability-discovery.yml"
+    ],
+    "copied_runtime_code": false
+  },
+  "truth_boundary": {
+    "source_backed": true,
+    "public_export_intent": true,
+    "runtime_proof": false,
+    "execution_authority": false,
+    "automatic_selection_authority": false,
+    "automatic_install_authority": false,
+    "project_mutation_authority": false,
+    "merge_authority": false,
+    "canon_authority": false
+  },
+  "receipt_sha256": "0e1b8e8f871b4126b22ec2d5de29a1f506ebf8d165cebfe0c67af3911acf9f67"
+}
