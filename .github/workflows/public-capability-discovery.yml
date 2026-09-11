@@ -152,6 +152,11 @@ jobs:
 
           index = json.loads(Path('/tmp/framestate-discovery/public-discovery.json').read_text(encoding='utf-8'))
           query = json.loads(Path('/tmp/framestate-query.json').read_text(encoding='utf-8'))
+          registry = json.loads(Path('registry/capabilities.jsonl').read_text(encoding='utf-8'))
+
+          assert registry['runtime']['dependencies'] == 1
+          assert registry['runtime']['declaredPackageDependencies'] == 0
+          assert registry['runtime']['externalPythonPackages'] == ['Pillow']
 
           assert index['schema'] == 'axm.discovery-index/v0.1'
           assert index['visibility'] == 'PUBLIC_SAFE_DECLARED_ONLY'
@@ -165,9 +170,6 @@ jobs:
           assert records[0]['id'] == 'axm.framestate.local-deterministic-video-machine'
           assert records[0]['status'] is None
           assert records[0]['providers'] == ['mike-axiom-mir/axm-framestate']
-          assert records[0]['runtime']['dependencies'] == 1
-          assert records[0]['runtime']['declaredPackageDependencies'] == 0
-          assert records[0]['runtime']['externalPythonPackages'] == ['Pillow']
           assert records[0]['source'] == 'registry/capabilities.jsonl'
           assert records[0]['line'] == 1
           sources = repo['capabilities']['sources']
@@ -194,7 +196,8 @@ jobs:
               'repositories': index['summary']['repositories'],
               'capability_records': index['summary']['capability_records'],
               'match': candidate['capability']['id'],
-              'current_cli_external_python_boundary': candidate['capability']['runtime']['externalPythonPackages'],
+              'source_registry_cli_boundary': registry['runtime']['externalPythonPackages'],
+              'portable_view_fields': sorted(candidate['capability']),
               'authority': query['authority']['classification'],
               'discovery_source_checkout_present': False,
           }, sort_keys=True))
