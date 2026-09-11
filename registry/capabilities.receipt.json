@@ -3,7 +3,7 @@
   "repository": "mike-axiom-mir/axm-framestate",
   "registry": {
     "path": "registry/capabilities.jsonl",
-    "sha256": "ebb288c1e8e4038be3ad2d091bcc0005b63f4c3f010d131157f0ab322101ac42",
+    "sha256": "840e28c94714696eda56a87c067279529488749d441fe871b3b0530e53353c25",
     "capability_count": 1,
     "capability_ids": [
       "axm.framestate.local-deterministic-video-machine"
@@ -25,6 +25,10 @@
     {
       "path": "src/axm_framestate/cli.py",
       "git_blob_sha1": "4d5e6a4a5f8057b913e2c831ba28f8fa9892ac71"
+    },
+    {
+      "path": "src/axm_framestate/media.py",
+      "git_blob_sha1": "347324c5775758e1ba7c35168d622d72edde5592"
     },
     {
       "path": "LICENSE",
@@ -52,6 +56,9 @@
     "source_backed": true,
     "public_export_intent": true,
     "runtime_proof": false,
+    "current_cli_external_python_boundary": [
+      "Pillow"
+    ],
     "execution_authority": false,
     "automatic_selection_authority": false,
     "automatic_install_authority": false,
@@ -59,5 +66,5 @@
     "merge_authority": false,
     "canon_authority": false
   },
-  "receipt_sha256": "0e1b8e8f871b4126b22ec2d5de29a1f506ebf8d165cebfe0c67af3911acf9f67"
+  "receipt_sha256": "4d86674222258487ee52c3a139e87641cc389a3c3c60a6aee42696d75a039e40"
 }
