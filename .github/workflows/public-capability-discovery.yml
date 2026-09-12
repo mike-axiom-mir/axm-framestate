@@ -1,0 +1,173 @@
+name: FrameState public capability discovery
+
+on:
+  pull_request:
+    paths:
+      - '.axm/discovery-public.json'
+      - 'pyproject.toml'
+      - 'src/axm_framestate/capabilities.py'
+      - 'src/axm_framestate/canonical.py'
+      - 'src/axm_framestate/cli.py'
+      - 'src/axm_framestate/media.py'
+      - 'LICENSE'
+      - 'registry/**'
+      - 'tools/generate_public_capabilities.py'
+      - 'tests/test_public_capability_discovery.py'
+      - 'DISCOVERY.md'
+      - '.github/workflows/public-capability-discovery.yml'
+  push:
+    branches: [main]
+    paths:
+      - '.axm/discovery-public.json'
+      - 'pyproject.toml'
+      - 'src/axm_framestate/capabilities.py'
+      - 'src/axm_framestate/canonical.py'
+      - 'src/axm_framestate/cli.py'
+      - 'src/axm_framestate/media.py'
+      - 'LICENSE'
+      - 'registry/**'
+      - 'tools/generate_public_capabilities.py'
+      - 'tests/test_public_capability_discovery.py'
+      - 'DISCOVERY.md'
+      - '.github/workflows/public-capability-discovery.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  provider-contract:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.11', '3.13']
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Compile discovery boundary
+        run: python -m py_compile tools/generate_public_capabilities.py tests/test_public_capability_discovery.py
+      - name: Verify generated evidence
+        run: python tools/generate_public_capabilities.py --check
+      - name: Run fail-closed discovery regressions
+        run: python -m unittest discover -s tests -p 'test_public_capability_discovery.py' -v
+      - name: Verify dependency-free real capability map
+        env:
+          PYTHONPATH: src
+        run: |
+          python -m axm_framestate capabilities > /tmp/framestate-capabilities.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          cap = json.loads(Path('/tmp/framestate-capabilities.json').read_text())
+          reg = json.loads(Path('registry/capabilities.jsonl').read_text())
+          assert cap['schema'] == 'axm.framestate.capability-map/v0.16'
+          for key in (
+              'dependency-free-core-package',
+              'media-output-confinement',
+              'forge-single-writer-publication',
+              'render-checkpoint-integrity',
+              'renderer-neutral-visual-state-bridge',
+              'echoworld-replay-visual-bridge',
+              'caller-pinned-render-output-verification',
+          ):
+              assert cap['capabilities'][key]['status'] == 'tested', key
+          assert reg['id'] == 'axm.framestate.local-deterministic-video-machine'
+          assert reg['status'] is None
+          assert reg['runtime']['dependencies'] == 0
+          assert reg['runtime']['declaredPackageDependencies'] == 0
+          assert reg['runtime']['externalPythonPackages'] == []
+          assert reg['contracts'] == {
+              'canonicalProject': 'axm.framestate.project/v0.5',
+              'capabilityMap': 'axm.framestate.capability-map/v0.16',
+              'currentCliImportBoundary': 'dependency-free-core-lazy-optional-media-v0.16',
+          }
+          assert reg['authority'] == {
+              'automaticInstall': False,
+              'automaticSelection': False,
+              'canon': False,
+              'discoveryOnly': True,
+              'execution': False,
+              'merge': False,
+              'projectMutation': False,
+          }
+          PY
+
+  portable-discovery-consumer:
+    needs: provider-contract
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Verify provider evidence before consumption
+        run: python tools/generate_public_capabilities.py --check
+      - name: Build pinned portable Discovery Buddy
+        uses: actions/checkout@v4
+        with:
+          repository: mike-axiom-mir/axm-discovery-buddy
+          ref: 565c38ecf93a9d563b02211258d8d36fcb1162b5
+          path: .discovery-buddy-source
+          persist-credentials: false
+      - name: Build and detach portable consumer
+        run: |
+          python .discovery-buddy-source/tools/build_portable_discovery.py build --output /tmp/discovery-buddy.pyz --receipt /tmp/discovery-buddy.pyz.receipt.json
+          python .discovery-buddy-source/tools/build_portable_discovery.py verify --output /tmp/discovery-buddy.pyz --receipt /tmp/discovery-buddy.pyz.receipt.json
+          rm -rf .discovery-buddy-source
+          test ! -e .discovery-buddy-source
+      - name: Scan verify and query FrameState
+        run: |
+          PYTHONPATH= PYTHONNOUSERSITE=1 python /tmp/discovery-buddy.pyz scan "$GITHUB_WORKSPACE" --public --output-dir /tmp/framestate-discovery
+          PYTHONPATH= PYTHONNOUSERSITE=1 python /tmp/discovery-buddy.pyz verify "$GITHUB_WORKSPACE" --public --output-dir /tmp/framestate-discovery
+          PYTHONPATH= PYTHONNOUSERSITE=1 python /tmp/discovery-buddy.pyz query /tmp/framestate-discovery/public-discovery.json --capability-id axm.framestate.local-deterministic-video-machine --provider mike-axiom-mir/axm-framestate > /tmp/framestate-query.json
+          python - <<'PY'
+          import hashlib
+          import json
+          from pathlib import Path
+          index = json.loads(Path('/tmp/framestate-discovery/public-discovery.json').read_text())
+          query = json.loads(Path('/tmp/framestate-query.json').read_text())
+          reg = json.loads(Path('registry/capabilities.jsonl').read_text())
+          assert reg['runtime']['dependencies'] == 0
+          assert reg['runtime']['externalPythonPackages'] == []
+          assert index['schema'] == 'axm.discovery-index/v0.1'
+          assert index['visibility'] == 'PUBLIC_SAFE_DECLARED_ONLY'
+          assert index['summary']['repositories'] == 1
+          assert index['summary']['capability_records'] == 1
+          repo = index['repositories'][0]
+          assert repo['repo'] == 'mike-axiom-mir/axm-framestate'
+          assert 'path' not in repo and 'git' not in repo
+          records = repo['capabilities']['records']
+          assert len(records) == 1
+          assert records[0]['id'] == 'axm.framestate.local-deterministic-video-machine'
+          raw = Path('registry/capabilities.jsonl').read_bytes()
+          assert repo['capabilities']['sources'][0]['sha256'] == hashlib.sha256(raw).hexdigest()
+          assert query['summary'] == {'matches': 1}
+          assert query['authority'] == {
+              'classification': 'DISCOVERY_EVIDENCE_ONLY',
+              'execute': False,
+              'install': False,
+              'select': False,
+              'merge': False,
+              'canon': False,
+          }
+          candidate = query['candidates'][0]
+          assert candidate['repository'] == 'mike-axiom-mir/axm-framestate'
+          assert candidate['capability']['id'] == 'axm.framestate.local-deterministic-video-machine'
+          PY
+      - name: Retain portable discovery evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: framestate-public-capability-evidence
+          path: |
+            /tmp/framestate-discovery/public-discovery.json
+            /tmp/framestate-query.json
+            /tmp/discovery-buddy.pyz.receipt.json
+            registry/capabilities.jsonl
+            registry/capabilities.receipt.json
+          if-no-files-found: error
