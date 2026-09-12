@@ -9,7 +9,10 @@ PROJECT_SCHEMA='axm.framestate.project/v0.5'
 class ProjectError(ValueError): pass
 
 def canonical_json(value:Any)->bytes:
-    return json.dumps(value,sort_keys=True,separators=(',',':'),ensure_ascii=False).encode('utf-8')
+    try:
+        return json.dumps(value,sort_keys=True,separators=(',',':'),ensure_ascii=False,allow_nan=False).encode('utf-8')
+    except (TypeError,ValueError) as e:
+        raise ProjectError(f'canonical state must be strict JSON: {e}') from e
 
 def digest(value:Any)->str:
     return 'sha256:'+hashlib.sha256(canonical_json(value)).hexdigest()
@@ -144,7 +147,9 @@ def normalize_project(raw:Any)->dict[str,Any]:
     if not isinstance(effects,list) or not all(isinstance(x,str) and x for x in effects): raise ProjectError('effects invalid')
     meta=raw.get('metadata',{}) or {}
     if not isinstance(meta,dict): raise ProjectError('metadata invalid')
-    return {'schema':PROJECT_SCHEMA,'id':pid,'title':title,'canvas':{'width':width,'height':height,'fps':fps},'duration_frames':duration,'background':bg,'camera':camera,'media':media,'layers':sorted(layers,key=lambda x:(x['z'],x['id'])),'captions':captions,'audio':audio,'effects':effects,'markers':sorted(markers,key=lambda x:(x['frame'],x['label'])),'metadata':meta}
+    project={'schema':PROJECT_SCHEMA,'id':pid,'title':title,'canvas':{'width':width,'height':height,'fps':fps},'duration_frames':duration,'background':bg,'camera':camera,'media':media,'layers':sorted(layers,key=lambda x:(x['z'],x['id'])),'captions':captions,'audio':audio,'effects':effects,'markers':sorted(markers,key=lambda x:(x['frame'],x['label'])),'metadata':meta}
+    canonical_json(project)
+    return project
 
 def load_project(path:Path)->dict[str,Any]:
     try: raw=json.loads(Path(path).read_text(encoding='utf-8'))
