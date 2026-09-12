@@ -1,0 +1,184 @@
+name: MergeAgent render verifier port
+
+on:
+  push:
+    branches:
+      - integration/render-output-verifier-20260912
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: github.event.head_commit.message != 'MergeAgent apply render verifier port'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: integration/render-output-verifier-20260912
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Apply narrow current-stack integration edits
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace_once(path: str, old: str, new: str) -> None:
+              p = Path(path)
+              text = p.read_text(encoding='utf-8')
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f'{path}: expected one replacement target, found {count}')
+              p.write_text(text.replace(old, new, 1), encoding='utf-8')
+
+          replace_once(
+              'src/axm_framestate/render.py',
+              "    state['realization']['texture_filter']=str(ropts.get('texture_filter','nearest'))\n    state['state_digest']=digest(state)\n",
+              "    state['realization']['texture_filter']=str(ropts.get('texture_filter','nearest'))\n    state.pop('state_digest',None)\n    state['state_digest']=digest(state)\n",
+          )
+
+          replace_once(
+              'src/axm_framestate/cli.py',
+              'from .receipts import render_with_receipt,verify_repeat,render_realized_with_receipt,verify_realized_repeat\n',
+              'from .receipts import render_with_receipt,verify_repeat,render_realized_with_receipt,verify_realized_repeat\nfrom .render_verify import verify_render_output\n',
+          )
+          replace_once(
+              'src/axm_framestate/cli.py',
+              "    x=sub.add_parser('verify-repeat');x.add_argument('project');x.add_argument('output')\n    x=sub.add_parser('snapshot');x.add_argument('--output-dir')\n",
+              "    x=sub.add_parser('verify-repeat');x.add_argument('project');x.add_argument('output')\n    x=sub.add_parser('verify-render');x.add_argument('output');x.add_argument('--receipt-digest',required=True);x.add_argument('--project-digest',required=True)\n    x=sub.add_parser('snapshot');x.add_argument('--output-dir')\n",
+          )
+          replace_once(
+              'src/axm_framestate/cli.py',
+              "    elif a.command=='verify-repeat':\n        r=verify_repeat(load_project(Path(a.project)),Path(a.output),root);_print(r);return 0 if r['passed'] else 2\n    elif a.command=='snapshot':_print(create_daily_snapshot(root,output_dir=Path(a.output_dir) if a.output_dir else None))\n",
+              "    elif a.command=='verify-repeat':\n        r=verify_repeat(load_project(Path(a.project)),Path(a.output),root);_print(r);return 0 if r['passed'] else 2\n    elif a.command=='verify-render':\n        _print(verify_render_output(Path(a.output),expected_receipt_digest=a.receipt_digest,expected_project_digest=a.project_digest))\n    elif a.command=='snapshot':_print(create_daily_snapshot(root,output_dir=Path(a.output_dir) if a.output_dir else None))\n",
+          )
+
+          replace_once(
+              '.github/workflows/recovery-snapshot-integrity.yml',
+              "      - name: Verify recovery snapshot contract\n        env:\n          PYTHONPATH: src\n        run: python -m unittest tests.test_snapshot_contract -v\n      - name: Verify complete current suite\n",
+              "      - name: Verify recovery snapshot contract\n        env:\n          PYTHONPATH: src\n        run: python -m unittest tests.test_snapshot_contract -v\n      - name: Verify caller-pinned render output admission\n        env:\n          PYTHONPATH: src\n        run: python -m unittest tests.test_render_output_verification -v\n      - name: Verify complete current suite\n",
+          )
+
+          Path('tests/test_render_output_verification.py').write_text(r'''from __future__ import annotations
+
+import json
+import tempfile
+import unittest
+from pathlib import Path
+
+from axm_framestate.canonical import canonical_json, load_project
+from axm_framestate.receipts import (
+    _stable_receipt_digest,
+    render_realized_with_receipt,
+    render_with_receipt,
+)
+from axm_framestate.render_verify import RenderVerificationError, verify_render_output
+
+
+ROOT = Path(__file__).resolve().parents[1]
+
+
+class RenderOutputVerificationTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.project = load_project(ROOT / "examples" / "first_light.json")
+
+    def render(self, root: Path) -> tuple[Path, dict]:
+        output = root / "render"
+        receipt = render_with_receipt(self.project, output, ROOT, assemble=False)
+        return output, receipt
+
+    def verify(self, output: Path, receipt: dict) -> dict:
+        return verify_render_output(
+            output,
+            expected_receipt_digest=receipt["receipt_digest"],
+            expected_project_digest=receipt["project_digest"],
+        )
+
+    def test_exact_render_output_round_trips_through_caller_pins(self):
+        with tempfile.TemporaryDirectory() as raw:
+            output, receipt = self.render(Path(raw))
+            result = self.verify(output, receipt)
+            self.assertTrue(result["verified"])
+            self.assertEqual(result["receipt_digest"], receipt["receipt_digest"])
+            self.assertEqual(result["project_digest"], receipt["project_digest"])
+            self.assertEqual(result["frame_count"], self.project["duration_frames"])
+            self.assertEqual(result["authority"], "EVIDENCE_ADMISSION_ONLY")
+
+    def test_changed_frame_is_rejected_without_rewriting_evidence(self):
+        with tempfile.TemporaryDirectory() as raw:
+            output, receipt = self.render(Path(raw))
+            receipt_path = output / "render-receipt.json"
+            original_receipt = receipt_path.read_bytes()
+            frame = output / "frames" / "frame-000000.ppm"
+            frame.write_bytes(frame.read_bytes() + b"changed")
+            with self.assertRaisesRegex(RenderVerificationError, "frame digest"):
+                self.verify(output, receipt)
+            self.assertEqual(receipt_path.read_bytes(), original_receipt)
+
+    def test_unreceipted_stale_frame_is_rejected(self):
+        with tempfile.TemporaryDirectory() as raw:
+            output, receipt = self.render(Path(raw))
+            stale = output / "frames" / "frame-999999.ppm"
+            stale.write_bytes(b"P6\n1 1\n255\n\x00\x00\x00")
+            with self.assertRaisesRegex(RenderVerificationError, "frame inventory"):
+                self.verify(output, receipt)
+
+    def test_changed_audio_and_captions_are_rejected(self):
+        with tempfile.TemporaryDirectory() as raw:
+            output, receipt = self.render(Path(raw))
+            audio = output / "audio.wav"
+            audio.write_bytes(audio.read_bytes() + b"changed")
+            with self.assertRaisesRegex(RenderVerificationError, "audio digest"):
+                self.verify(output, receipt)
+
+        with tempfile.TemporaryDirectory() as raw:
+            output, receipt = self.render(Path(raw))
+            captions = output / "captions.vtt"
+            captions.write_text("WEBVTT\n\nchanged\n", encoding="utf-8")
+            with self.assertRaisesRegex(RenderVerificationError, "caption digest"):
+                self.verify(output, receipt)
+
+    def test_self_consistently_resealed_receipt_cannot_replace_caller_pin(self):
+        with tempfile.TemporaryDirectory() as raw:
+            output, receipt = self.render(Path(raw))
+            receipt_path = output / "render-receipt.json"
+            changed = json.loads(receipt_path.read_text(encoding="utf-8"))
+            changed["project_id"] = "substituted"
+            changed.pop("receipt_digest")
+            changed["receipt_digest"] = _stable_receipt_digest(changed)
+            receipt_path.write_bytes(canonical_json(changed) + b"\n")
+            with self.assertRaisesRegex(RenderVerificationError, "caller receipt pin"):
+                self.verify(output, receipt)
+
+    def test_realized_render_contract_is_admitted(self):
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            output = root / "realized"
+            machine = json.loads((ROOT / "examples" / "machine_high.json").read_text(encoding="utf-8"))
+            policy = json.loads((ROOT / "examples" / "realization_policy.json").read_text(encoding="utf-8"))
+            receipt = render_realized_with_receipt(
+                self.project, output, ROOT, machine, policy, assemble=False
+            )
+            result = self.verify(output, receipt)
+            self.assertEqual(
+                result["realization_contract_digest"],
+                receipt["realization"]["contract_digest"],
+            )
+
+
+if __name__ == "__main__":
+    unittest.main()
+''', encoding='utf-8')
+          PY
+      - name: Commit exact integration result and remove staging workflow
+        run: |
+          git config user.name 'AXM MergeAgent'
+          git config user.email 'actions@users.noreply.github.com'
+          git rm .github/workflows/mergeagent-render-verifier-port.yml
+          git add src/axm_framestate/render.py src/axm_framestate/cli.py .github/workflows/recovery-snapshot-integrity.yml tests/test_render_output_verification.py
+          git diff --cached --check
+          git commit -m 'MergeAgent apply render verifier port'
+          git push origin HEAD:integration/render-output-verifier-20260912
