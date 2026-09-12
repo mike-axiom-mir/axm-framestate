@@ -5,6 +5,7 @@ from .canonical import load_project,canonical_json
 from .capabilities import analyze_requirements,capability_summary
 from .forge import adopt_effect,spawn_effect,adopt_recipe,spawn_recipe
 from .receipts import render_with_receipt,verify_repeat,render_realized_with_receipt,verify_realized_repeat
+from .render_verify import verify_render_output
 from .snapshot import create_daily_snapshot
 from .review import review_project
 from .director import compile_plan_file,compile_brief_file
@@ -27,6 +28,7 @@ def main(argv:list[str]|None=None)->int:
     x=sub.add_parser('inspect');x.add_argument('project')
     x=sub.add_parser('render');x.add_argument('project');x.add_argument('output');x.add_argument('--no-assemble',action='store_true');x.add_argument('--profile',choices=['fast','h264','quality'],default='h264')
     x=sub.add_parser('verify-repeat');x.add_argument('project');x.add_argument('output')
+    x=sub.add_parser('verify-render');x.add_argument('output');x.add_argument('--receipt-digest',required=True);x.add_argument('--project-digest',required=True)
     x=sub.add_parser('snapshot');x.add_argument('--output-dir')
     x=sub.add_parser('review');x.add_argument('project')
     sub.add_parser('capabilities')
@@ -61,6 +63,8 @@ def main(argv:list[str]|None=None)->int:
     elif a.command=='render':_print(render_with_receipt(load_project(Path(a.project)),Path(a.output),root,assemble=not a.no_assemble,profile=a.profile))
     elif a.command=='verify-repeat':
         r=verify_repeat(load_project(Path(a.project)),Path(a.output),root);_print(r);return 0 if r['passed'] else 2
+    elif a.command=='verify-render':
+        _print(verify_render_output(Path(a.output),expected_receipt_digest=a.receipt_digest,expected_project_digest=a.project_digest))
     elif a.command=='snapshot':_print(create_daily_snapshot(root,output_dir=Path(a.output_dir) if a.output_dir else None))
     elif a.command=='review':_print(review_project(load_project(Path(a.project)),root))
     elif a.command=='capabilities':_print(capability_summary())
