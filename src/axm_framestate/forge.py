@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import datetime as dt
 import json
-import shutil
+import os
+import stat
+import tempfile
 from pathlib import Path
 from typing import Any
 
@@ -10,11 +12,49 @@ from .canonical import canonical_json, digest
 from .effects import normalize_effect, test_effect_manifest
 from .recipes import normalize_recipe, test_recipe_manifest
 from .roots import evaluate_root_fit
-from .snapshot import create_daily_snapshot
+from .snapshot import _fsync_directory, create_daily_snapshot
 
 
 class ForgeError(RuntimeError):
     pass
+
+
+def _publish_live_manifest(destination: Path, manifest: dict[str, Any]) -> dict[str, object] | None:
+    """Publish one fully written manifest without replacing an existing path."""
+    destination = Path(destination)
+    parent = destination.parent
+    parent.mkdir(parents=True, exist_ok=True)
+    try:
+        parent_mode = parent.lstat().st_mode
+    except OSError as exc:
+        raise ForgeError("live organ directory is unavailable") from exc
+    if not stat.S_ISDIR(parent_mode) or stat.S_ISLNK(parent_mode):
+        raise ForgeError("live organ directory must be a real directory")
+
+    payload = canonical_json({key: value for key, value in manifest.items() if key != "ref"}) + b"\n"
+    fd, stage_name = tempfile.mkstemp(prefix=f".{destination.name}.", suffix=".stage", dir=parent)
+    stage = Path(stage_name)
+    try:
+        with os.fdopen(fd, "wb") as handle:
+            fd = -1
+            handle.write(payload)
+            handle.flush()
+            os.fsync(handle.fileno())
+        try:
+            os.link(stage, destination)
+        except FileExistsError:
+            return None
+        except OSError as exc:
+            raise ForgeError("atomic create-only live organ publication failed") from exc
+        return {
+            "publication": "CREATED_ATOMIC_CREATE_ONLY",
+            "installed_manifest_digest": digest(manifest),
+            "directory_fsync": _fsync_directory(parent),
+        }
+    finally:
+        if fd >= 0:
+            os.close(fd)
+        stage.unlink(missing_ok=True)
 
 
 def _verify_spawn_receipt(
@@ -92,16 +132,17 @@ def adopt_effect(root: Path, candidate_dir: Path, reason: str, root_fit: Any, *,
     if declared.get("fit") is not True or adoption.get("fit") is not True:
         return {"adopted": False, "truth_status": "HOLD_ROOT_FIT", "candidate_root_fit": declared, "adoption_root_fit": adoption}
     destination = root / "effect-organs" / f"{manifest['id']}-{manifest['version']}.json"
-    if destination.exists():
+    if os.path.lexists(destination):
         return {"adopted": False, "truth_status": "HOLD_REF_COLLISION", "destination": str(destination)}
     recovery = create_daily_snapshot(root, day=day)
-    destination.parent.mkdir(parents=True, exist_ok=True)
-    source = Path(candidate_dir) / "effect.json"
-    shutil.copyfile(source, destination)
-    installed = normalize_effect(json.loads(destination.read_text(encoding="utf-8")))
-    if installed["ref"] != manifest["ref"] or digest(installed) != digest(manifest):
-        destination.unlink(missing_ok=True)
-        raise ForgeError("installed effect differs from tested candidate")
+    publication = _publish_live_manifest(destination, manifest)
+    if publication is None:
+        return {
+            "adopted": False,
+            "truth_status": "HOLD_REF_COLLISION",
+            "destination": str(destination),
+            "publication": "CONCURRENT_EXISTING_HELD",
+        }
     return {
         "adopted": True,
         "truth_status": "ADOPTED_LIVE_EFFECT_ORGAN",
@@ -113,6 +154,7 @@ def adopt_effect(root: Path, candidate_dir: Path, reason: str, root_fit: Any, *,
         "adoption_root_fit": adoption,
         "recovery_snapshot": recovery,
         "destination": str(destination),
+        **publication,
         "authority_change": {"installed": True, "registered": True, "canon_changed": False, "permissions_changed": False},
     }
 
@@ -165,16 +207,17 @@ def adopt_recipe(root: Path, candidate_dir: Path, reason: str, root_fit: Any, *,
     if declared.get("fit") is not True or adoption.get("fit") is not True:
         return {"adopted": False, "truth_status": "HOLD_ROOT_FIT", "candidate_root_fit": declared, "adoption_root_fit": adoption}
     destination = root / "recipe-organs" / f"{manifest['id']}-{manifest['version']}.json"
-    if destination.exists():
+    if os.path.lexists(destination):
         return {"adopted": False, "truth_status": "HOLD_REF_COLLISION", "destination": str(destination)}
     recovery = create_daily_snapshot(root, day=day)
-    destination.parent.mkdir(parents=True, exist_ok=True)
-    source = Path(candidate_dir) / "recipe.json"
-    shutil.copyfile(source, destination)
-    installed = normalize_recipe(json.loads(destination.read_text(encoding="utf-8")))
-    if installed["ref"] != manifest["ref"] or digest(installed) != digest(manifest):
-        destination.unlink(missing_ok=True)
-        raise ForgeError("installed recipe differs from tested candidate")
+    publication = _publish_live_manifest(destination, manifest)
+    if publication is None:
+        return {
+            "adopted": False,
+            "truth_status": "HOLD_REF_COLLISION",
+            "destination": str(destination),
+            "publication": "CONCURRENT_EXISTING_HELD",
+        }
     return {
         "adopted": True,
         "truth_status": "ADOPTED_LIVE_SHOT_RECIPE",
@@ -186,6 +229,7 @@ def adopt_recipe(root: Path, candidate_dir: Path, reason: str, root_fit: Any, *,
         "adoption_root_fit": adoption,
         "recovery_snapshot": recovery,
         "destination": str(destination),
+        **publication,
         "authority_change": {"installed": True, "registered": True, "canon_changed": False, "permissions_changed": False},
         "truth_boundary": "the recipe becomes reusable construction vocabulary; adoption does not grant it merge, canon, permission, or arbitrary code authority",
     }
