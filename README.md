@@ -15,7 +15,7 @@ Only four rules sit above the machine:
 
 Everything else is working architecture and may be replaced when better evidence appears.
 
-## v0.10 construction space
+## v0.12 construction space
 
 One canonical project can combine:
 
@@ -23,7 +23,7 @@ One canonical project can combine:
 - scalar/from-to/multi-keyframe animation and animated cameras;
 - imported stills and video, including trim, loop, forward/reverse/freeze source selection;
 - image masks, chroma key, wipes, rotation, fades and normal/add/multiply/screen compositing;
-- native 5x7 deterministic text plus supplied-font Unicode rasterization through a receipted Pillow/FreeType boundary;
+- native 5x7 deterministic text plus supplied-font Unicode rasterization through a receipted optional Pillow/FreeType boundary;
 - burned captions and exact WebVTT subtitle export;
 - procedural tones, imported audio, gain automation, stereo pan, native deterministic narration and optional explicit eSpeak narration;
 - primitive 3D and OBJ mesh import;
@@ -33,9 +33,27 @@ One canonical project can combine:
 - shot-plan compilation, shot derivation and storyboards built from real rendered frames;
 - render queues, frame analysis and non-mutating cut proposals;
 - verified effect organs and bounded pixel-program effects;
-- playable MP4 export through an explicit FFmpeg boundary.
+- playable MP4 export through an explicit FFmpeg boundary;
+- a local visual Studio over the canonical project state;
+- crash-resumable native frame rendering with checkpoint identity and corruption/drift refusal.
 
 That makes the body practically genre-open for motion graphics, explainers, edited footage, trailers, montages, tutorials, social clips, slideshows, title sequences, visualizers, simple animation, simple 3D cinematics and mixtures of those forms. It is not a claim that every studio technique already exists.
+
+## Open the visual Studio
+
+After installing the package:
+
+```bash
+framestate-studio my-film.json
+```
+
+Or from a source checkout:
+
+```bash
+PYTHONPATH=src python -m axm_framestate.studio examples/adaptive_realization.json
+```
+
+Studio binds to loopback only and edits the same canonical project state used by the CLI. It can add/edit common layers, captions and audio events, scrub the timeline, preview through the **actual FrameState renderer**, use exact/adaptive realization, apply bounded prompts as explicit state operations, run mechanical review, save atomically and start final renders. Full canonical JSON remains visible as the fallback interface for state that does not yet have a dedicated visual control. See `STUDIO.md`.
 
 ## Make a finished video
 
@@ -65,6 +83,20 @@ PYTHONPATH=src python -m axm_framestate make \
 
 The rehearsal fabric repeatedly renders/simulates the candidate, inspects bounded mechanical evidence, applies only evidence-improving deltas, replays, compares, and stops when no justified automatic delta remains. See `REHEARSAL.md`.
 
+## Resume an interrupted native render
+
+```bash
+framestate-render-resume project.json renders/final --checkpoint-interval 12
+```
+
+Adaptive:
+
+```bash
+framestate-render-resume project.json renders/final --adaptive --checkpoint-interval 12
+```
+
+The checkpoint binds canonical project, conformed media and adaptive realization identity plus the exact admitted frame bytes/state. A changed project, changed media/contract or corrupted checkpointed frame fails closed. Frame files beyond the last admitted checkpoint are discarded and rerendered. Completed resumed native manifests are regression-tested against uninterrupted render output. FFmpeg codec internals are still an external compatibility boundary rather than falsely called resumable. See `RESUME.md`.
+
 ## Hard verification
 
 ```bash
@@ -75,7 +107,9 @@ PYTHONPATH=src python -m axm_framestate gaps \
   examples/advanced_requirements.json
 ```
 
-Current checkpoint: **44/44 unit tests pass across five regression groups**: machine 17, prompt 5, rehearsal 4, native speech 5, adaptive realization/fidelity 13. Rehearsal, bounded-prompt, native-speech and adaptive-realization capability probes return READY. Native speech produces exact PCM with no speech-engine/FFmpeg dependency, while standard MP4 export remains an explicit FFmpeg boundary. Human listening feedback also established an important truth gap: the v0.8 native voice proof was not intelligible as words to the listener, so human-intelligible native speech remains explicitly unsolved.
+Current v0.12 checkpoint: the **54-test complete tree passes on Python 3.11, 3.12 and 3.13 in GitHub Actions**. The same workflow validates Studio JavaScript/imports and separately builds/installs the exact wheel, starts the packaged CLI/Studio/resume entry points, and verifies the shipped Studio resources. The package gate runs without installing Pillow and therefore verifies that Pillow is no longer a hidden core import dependency.
+
+The v0.8 native speech path remains mechanically deterministic and exact, but human listening feedback established that its proof sample was not intelligible as recognizable words. Human-intelligible native speech therefore remains explicitly unsolved rather than being called usable TTS.
 
 ## Inspect rather than trust
 
@@ -111,16 +145,20 @@ FrameState separates evidence planes deliberately:
 - canonical project state is normalized and digest-bound;
 - generated PPM frame bytes and per-frame state are exact and receipted;
 - imported media bytes are digest-bound; FFmpeg/Pillow/font and optional external-speech boundaries remain named and version/evidence receipted;
+- Pillow is lazy/optional and is not required merely to install/import the core or use native bitmap text/Studio preview paths;
 - internally mixed PCM/WAV is exact for the current runtime;
-- MP4 encoding remains an external FFmpeg boundary, with no false universal bit-identical codec claim;
-- current self-growth is bounded to tested effect organs, not arbitrary self-rewriting;
-- bounded direct/style prompt language is native and versioned; unrestricted semantic natural-language directing remains an explicit translator/interpretation boundary rather than hidden machine authority.
+- native frame rendering can resume only from admitted/checkpoint-verified bytes;
+- MP4 encoding remains an external FFmpeg boundary, with no false universal bit-identical codec or mid-encoder-resume claim;
+- current self-growth is bounded to tested effect organs and data-only shot recipes, not arbitrary self-rewriting;
+- bounded direct/style prompt language is native and versioned; unrestricted semantic natural-language directing remains an explicit translator/interpretation boundary rather than hidden machine authority;
+- v0.12 still has only the CPU-software render backend and does not claim Metal/Vulkan/WebGPU execution;
+- recovered source still does not contain tested weighted 3D skinning; the unrecovered v0.3 evidence is provenance only.
 
-See `FOUNDATION.md`, `CHANGELOG.md`, `DONOR_NOTES.md` and `VERIFICATION.md` for the current evidence boundary.
+See `FOUNDATION.md`, `CHANGELOG.md`, `DONOR_NOTES.md`, `VERIFICATION.md`, `STUDIO.md`, and `RESUME.md` for the current evidence boundary.
 
 ## Director layer (v0.5)
 
-FrameState can now start one floor above a shot plan. A compact creative brief chooses a style, media and ordered beats; the deterministic director materializes those beats into shots, compiles a canonical project, and the existing renderer takes over.
+FrameState can start one floor above a shot plan. A compact creative brief chooses a style, media and ordered beats; the deterministic director materializes those beats into shots, compiles a canonical project, and the existing renderer takes over.
 
 ```bash
 PYTHONPATH=src python -m axm_framestate make examples/creative_brief.json renders/director-proof
@@ -132,7 +170,7 @@ Free-form natural-language directing remains an explicit translator boundary. Fr
 
 ## v0.7 prompts: high-level direction without hidden authority
 
-FrameState can now apply bounded prompt direction to a project before rehearsal:
+FrameState can apply bounded prompt direction to a project before rehearsal:
 
 ```bash
 PYTHONPATH=src python -m axm_framestate interpret-prompt \
@@ -144,7 +182,6 @@ PYTHONPATH=src python -m axm_framestate prompt-make \
 ```
 
 The same prompt on the same project produces the same prompt plan and candidate state. Native style words are versioned. Ambiguous terms remain visible and held rather than receiving silent machine meaning. See `PROMPTS.md`.
-
 
 ## v0.8 native speech: FrameState owns a mouth
 
@@ -158,10 +195,9 @@ PYTHONPATH=src python -m axm_framestate speak-native \
 
 The native route uses inspectable pronunciation/phoneme state and emits exact 48 kHz PCM/WAV without eSpeak, FFmpeg, a model, internet, or downloaded voice. Historical v0.4 speech without an engine preserves its prior eSpeak meaning; explicit eSpeak remains optional. See `SPEECH.md`.
 
-
 ## v0.10 adaptive realization: same truth, different detail and fidelity
 
-FrameState can now separate canonical project truth from the machine-specific way that truth is rendered.
+FrameState separates canonical project truth from the machine-specific way that truth is rendered.
 
 ```bash
 PYTHONPATH=src python -m axm_framestate probe-machine
@@ -177,8 +213,8 @@ PYTHONPATH=src python -m axm_framestate render-adaptive \
   --policy examples/realization_policy.json --no-assemble --verify-repeat
 ```
 
-The v0.10 planner consumes **canonical project + bounded machine capability state + explicit user policy** and emits a deterministic render contract. Detail scaling still covers particle density, deterministic 3D shadow work, optional effect-pass budget, and FFmpeg compatibility export profile. Fidelity scaling is now separate: stronger CPU-software realizations can use deterministic internal supersampling and bilinear texture filtering while the canonical canvas stays unchanged. Effects execute after supersample resolve at canonical output resolution so their coordinate semantics do not silently change.
+The planner consumes **canonical project + bounded machine capability state + explicit user policy** and emits a deterministic render contract. Detail scaling covers particle density, deterministic 3D shadow work, optional effect-pass budget and FFmpeg compatibility export profile. Fidelity scaling is separate: stronger CPU-software realizations can use deterministic internal supersampling and bilinear texture filtering while the canonical canvas stays unchanged. Effects execute after supersample resolve at canonical output resolution so their coordinate semantics do not silently change.
 
-`exact` mode preserves the legacy CPU-software realization and is regression-tested to reproduce the legacy renderer's pixel digests. A dedicated same-circle proof now verifies that high-tier supersampling creates partial-coverage edge pixels while low-tier rendering does not, without adding objects or changing canonical scene state. Unknown capability facts are handled conservatively rather than silently promoting quality. The machine probe records only bounded execution facts and deliberately avoids user/device identifiers or network fingerprinting.
+`exact` mode preserves the legacy CPU-software realization and is regression-tested to reproduce the legacy renderer's pixel digests. A dedicated same-circle proof verifies partial-coverage edge pixels on the richer tier without adding objects/details. Unknown capability facts are handled conservatively rather than silently promoting quality. The machine probe records only bounded execution facts and deliberately avoids user/device identifiers or network fingerprinting.
 
-This is the first implementation of the rule: **degrade expression, never truth; upgrade expression, never invent truth.** See `REALIZATION.md`.
+**Working rule: degrade expression, never truth; upgrade expression, never invent truth.** See `REALIZATION.md`.

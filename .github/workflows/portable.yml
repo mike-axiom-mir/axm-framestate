@@ -1,0 +1,68 @@
+name: Verify Portable FrameState
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  portable:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            artifact: linux-x86_64
+            exe_ext: ''
+          - os: windows-latest
+            artifact: windows-x86_64
+            exe_ext: '.exe'
+          - os: macos-latest
+            artifact: macos
+            exe_ext: ''
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Build frozen portable application
+        shell: bash
+        run: |
+          python -m pip install --upgrade pip pyinstaller
+          python -m PyInstaller --noconfirm --clean packaging/FrameState.spec
+      - name: Smoke exact frozen executable
+        shell: bash
+        run: python packaging/smoke_portable.py "dist/FrameState${{ matrix.exe_ext }}"
+      - name: Record executable SHA-256
+        shell: bash
+        run: |
+          python - <<'PY'
+          import hashlib, json, os, platform
+          from pathlib import Path
+          ext = os.environ.get('EXE_EXT', '')
+          p = Path('dist') / f'FrameState{ext}'
+          receipt = {
+              'schema': 'axm.framestate.portable-build-receipt/v0.1',
+              'artifact': os.environ['ARTIFACT'],
+              'filename': p.name,
+              'sha256': hashlib.sha256(p.read_bytes()).hexdigest(),
+              'size_bytes': p.stat().st_size,
+              'runner_platform': platform.platform(),
+              'python': platform.python_version(),
+          }
+          Path('dist/portable-build-receipt.json').write_text(json.dumps(receipt, sort_keys=True, indent=2) + '\n', encoding='utf-8')
+          print(json.dumps(receipt, sort_keys=True))
+          PY
+        env:
+          ARTIFACT: ${{ matrix.artifact }}
+          EXE_EXT: ${{ matrix.exe_ext }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: FrameState-${{ matrix.artifact }}
+          if-no-files-found: error
+          path: |
+            dist/FrameState${{ matrix.exe_ext }}
+            dist/portable-build-receipt.json

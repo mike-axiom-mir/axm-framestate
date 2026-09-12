@@ -1,2 +1,2 @@
-__version__='0.10.0'
+__version__='0.16.0'
 from .canonical import load_project,normalize_project,digest

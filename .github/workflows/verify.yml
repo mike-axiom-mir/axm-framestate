@@ -1,0 +1,66 @@
+name: Verify FrameState
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.11', '3.12', '3.13']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install compatibility test boundaries
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg espeak
+          python -m pip install --upgrade pip
+          python -m pip install Pillow
+      - name: Run complete regression tree
+        run: PYTHONPATH=src python -m unittest discover -s tests -v
+      - name: Validate Studio JavaScript
+        run: node --check src/axm_framestate/studio_ui/app.js
+      - name: Validate package import
+        run: PYTHONPATH=src python -c "from axm_framestate.studio import default_project, ppm_to_png; from axm_framestate.resumable import render_frames_resumable; from axm_framestate.parallel_render import render_project_parallel; from axm_framestate.semantic import stage_semantic_candidate; from axm_framestate.portable import portable_doctor; assert default_project()['schema'].endswith('/v0.5'); assert ppm_to_png(b'P6\\n1 1\\n255\\n\\x00\\x00\\x00').startswith(b'\\x89PNG'); assert callable(render_frames_resumable); assert callable(render_project_parallel); assert callable(stage_semantic_candidate); assert portable_doctor()['schema'].endswith('/v0.2')"
+
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Build wheel
+        run: |
+          python -m pip install --upgrade pip build
+          python -m build
+      - name: Install exact wheel
+        run: |
+          python -m pip install dist/*.whl
+          framestate capabilities >/tmp/capabilities.json
+          framestate-studio --help >/tmp/studio-help.txt
+          framestate-render-resume --help >/tmp/resume-help.txt
+          framestate-render-parallel --help >/tmp/parallel-help.txt
+          framestate-semantic --help >/tmp/semantic-help.txt
+          framestate-portable doctor >/tmp/portable-doctor.json
+          framestate-portable --help >/tmp/portable-help.txt
+      - name: Verify packaged Studio resources
+        run: |
+          python - <<'PY'
+          from importlib import resources
+          root = resources.files('axm_framestate').joinpath('studio_ui')
+          for name in ('index.html', 'style.css', 'app.js'):
+              data = root.joinpath(name).read_bytes()
+              assert data, name
+          print('PACKAGED_STUDIO_OK')
+          PY
