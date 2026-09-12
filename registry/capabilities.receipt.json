@@ -1,0 +1,68 @@
+{
+  "schema": "axm.public-capability-registry-receipt/v1",
+  "repository": "mike-axiom-mir/axm-framestate",
+  "registry": {
+    "path": "registry/capabilities.jsonl",
+    "sha256": "06bc059f4c5b3049f21fad8938b7bd55903deca8a10beebf3f346fbb80897116",
+    "capability_count": 1,
+    "capability_ids": [
+      "axm.framestate.local-deterministic-video-machine"
+    ]
+  },
+  "sources": [
+    {
+      "path": "pyproject.toml",
+      "git_blob_sha1": "e6cf6bb0a344219572a8b9f68425b6596bb6f688"
+    },
+    {
+      "path": "src/axm_framestate/capabilities.py",
+      "git_blob_sha1": "4c44d630fcaee903d5ffc0201a042c60eb99e0c2"
+    },
+    {
+      "path": "src/axm_framestate/canonical.py",
+      "git_blob_sha1": "c44122ce84a238587ee263ca4df95be762992f6e"
+    },
+    {
+      "path": "src/axm_framestate/cli.py",
+      "git_blob_sha1": "5baffb17ad84563bd606aea46d2b39feb128607a"
+    },
+    {
+      "path": "src/axm_framestate/media.py",
+      "git_blob_sha1": "bc674cabed9de8e4bdef1eb74ab67151e2d9134e"
+    },
+    {
+      "path": "LICENSE",
+      "git_blob_sha1": "261eeb9e9f8b2b4b0d119366dda99c6fd7d35c64"
+    }
+  ],
+  "compatibility": {
+    "consumer": "mike-axiom-mir/axm-discovery-buddy",
+    "pinned_ref": "565c38ecf93a9d563b02211258d8d36fcb1162b5",
+    "portable_boundary": "discovery-buddy.pyz",
+    "marker_contract": "axm.discovery-public/v1",
+    "registry_contract": "registry/*capabilit*.jsonl"
+  },
+  "pattern_provenance": {
+    "adapted_from_repository": "mike-axiom-mir/axm-casual-loop",
+    "adapted_from_ref": "f561a8a325444be30ad0b4fee412b3958aa1f1ee",
+    "adapted_paths": [
+      ".axm/discovery-public.json",
+      "tools/generate_public_capabilities.py",
+      ".github/workflows/public-capability-discovery.yml"
+    ],
+    "copied_runtime_code": false
+  },
+  "truth_boundary": {
+    "source_backed": true,
+    "public_export_intent": true,
+    "runtime_proof": false,
+    "current_cli_external_python_boundary": [],
+    "execution_authority": false,
+    "automatic_selection_authority": false,
+    "automatic_install_authority": false,
+    "project_mutation_authority": false,
+    "merge_authority": false,
+    "canon_authority": false
+  },
+  "receipt_sha256": "89965a70ecb175969e98a8dfc6533b94edb4a9ac91d4bee083422e4ba15e8f92"
+}
