@@ -1,0 +1,96 @@
+{
+  "schema_version": "1.4",
+  "module": {
+    "name": "axm-framestate",
+    "purpose": "Local deterministic frame-state video/animation machine with canonical project truth separated from bounded rendered expression."
+  },
+  "capabilities": [
+    {
+      "id": "timeline.integer-sample",
+      "description": "Sample FrameState integer/scalar/keyframe track state deterministically at one frame using the existing integer timeline sampler.",
+      "provides": [
+        "timeline.integer-sample",
+        "state.frame-sample"
+      ],
+      "accepts": [
+        "timeline.track",
+        "timeline.frame-range"
+      ],
+      "tags": [
+        "timeline",
+        "state",
+        "deterministic",
+        "python",
+        "offline"
+      ],
+      "evidence": {
+        "status": "existing_source_executable_and_regression_covered",
+        "boundary": "the sampler returns integer timeline state only; it does not render media, mutate canonical project state, choose creative direction, or grant execution authority"
+      },
+      "callable": {
+        "schema": "axm.callable-capability/v0.1",
+        "kind": "module-export",
+        "runtime": "python",
+        "path": "src/axm_framestate/timeline.py",
+        "export": "sample",
+        "input_contract": "axm.framestate.timeline-integer-sample-request/v0.1",
+        "output_contract": "axm.framestate.timeline-integer-sample-result/v0.1",
+        "authority": "none",
+        "network": "none",
+        "notes": "Existing pure deterministic sampler; callable declaration adds no new timeline behavior."
+      }
+    },
+    {
+      "id": "machine.framestate",
+      "description": "FrameState canonical project/timeline state and bounded deterministic realization machinery.",
+      "provides": [
+        "state.canonical-project",
+        "artifact.render-evidence",
+        "machine.video-animation"
+      ],
+      "accepts": [
+        "project.state",
+        "render.policy",
+        "media"
+      ],
+      "tags": [
+        "framestate",
+        "video",
+        "animation",
+        "state",
+        "offline"
+      ],
+      "evidence": {
+        "status": "mixed_scoped_executable_rendered_tested_and_external_boundaries",
+        "boundary": "the finer-grained FrameState capability map remains authoritative for scoped maturity and known gaps"
+      }
+    }
+  ],
+  "entrypoints": [
+    {
+      "kind": "python-cli",
+      "command": "framestate capabilities",
+      "purpose": "inspect the current FrameState capability map"
+    },
+    {
+      "kind": "python-studio",
+      "command": "framestate-studio",
+      "purpose": "local FrameState Studio surface"
+    }
+  ],
+  "tests": [
+    {
+      "kind": "python-unittest",
+      "command": "PYTHONPATH=src python -m unittest discover -s tests -v",
+      "scope": "complete FrameState regression tree"
+    }
+  ],
+  "truth_boundary": {
+    "not_claimed": [
+      "Monolith execution merely because this source descriptor exists",
+      "rendered media or visual quality from the integer timeline sampler",
+      "merge, CANON, install, network, or risk-acceptance authority from a callable descriptor",
+      "universal cross-runtime or cross-project correctness beyond exact exercised requests"
+    ]
+  }
+}
