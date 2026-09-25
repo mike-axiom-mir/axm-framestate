@@ -177,7 +177,7 @@ def validate_package(root: Path) -> dict[str, Any]:
         raise DiscoveryError("Python runtime boundary drift")
     if project.get("dependencies") != []:
         raise DiscoveryError("declared package dependency boundary drift")
-    if project.get("license") != "Apache-2.0":
+    if project.get("license") != "MPL-2.0":
         raise DiscoveryError("package license declaration drift")
     scripts = project.get("scripts")
     expected_scripts = {
@@ -191,8 +191,8 @@ def validate_package(root: Path) -> dict[str, Any]:
     if scripts != expected_scripts:
         raise DiscoveryError("installed command boundary drift")
     license_text = regular_file(root, LICENSE_PATH).read_text(encoding="utf-8")
-    if "Apache License" not in license_text or "Version 2.0, January 2004" not in license_text:
-        raise DiscoveryError("Apache-2.0 license evidence drift")
+    if not license_text.startswith("Mozilla Public License Version 2.0"):
+        raise DiscoveryError("MPL-2.0 license evidence drift")
     return project
 
 def validate_current_cli_import_boundary(root: Path) -> None:

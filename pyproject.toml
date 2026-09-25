@@ -7,7 +7,7 @@ name = "axm-framestate"
 version = "0.16.0"
 description = "Standalone deterministic video creation and growth machine"
 requires-python = ">=3.11"
-license = "Apache-2.0"
+license = "MPL-2.0"
 authors = [{name = "AXM"}]
 dependencies = []
 
